@@ -13,7 +13,6 @@ from fastapi.responses import FileResponse
 from .background import process_audio_job
 from .background import JOB_STATUS
 from transcriber_app.modules.logging.logging_config import setup_logging
-from transcriber_app.web.auth.dependencies import is_authenticated, require_auth
 
 # Logging
 logger = setup_logging("transcribeapp")
@@ -21,6 +20,11 @@ logger = setup_logging("transcribeapp")
 RECORDINGS_DIR = "recordings"
 
 router = APIRouter()
+
+
+def check_auth(request: Request):
+    """Verifica si el usuario está autenticado"""
+    return request.cookies.get("logged_in") == "true"
 
 
 @router.post("/upload-audio")
@@ -34,7 +38,7 @@ async def upload_audio(
 ):
     """Recibe el audio grabado desde el navegador y lanza el procesamiento."""
     # Verificar autenticación
-    if not is_authenticated(request):
+    if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
 
     # Validación básica
@@ -91,7 +95,7 @@ def get_status(job_id: str):
 @router.post("/chat/stream")
 async def chat_stream(request: Request, payload: dict):
     # Verificar autenticación
-    if not is_authenticated(request):
+    if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
     
     message = payload.get("message", "")
@@ -132,7 +136,7 @@ async def process_existing(
     transcription: str = Form(None)
 ):
     # Verificar autenticación
-    if not is_authenticated(request):
+    if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
     
     text = None

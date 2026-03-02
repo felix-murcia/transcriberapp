@@ -23,6 +23,15 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - UVICORN_WORKERS=1
+      
+      # OAuth2 - Comunicación con OAuth2Server
+      - OAUTH2_URL=http://host.docker.internal:8080
+      - PUBLIC_OAUTH2_URL=http://localhost:8080
+      - PUBLIC_REDIRECT_URI=http://localhost:9000/oauth/callback
+      
+      # Credenciales OAuth2
+      - OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID}
+      - OAUTH2_CLIENT_SECRET=${OAUTH2_CLIENT_SECRET}
 
     command: >
       uvicorn transcriber_app.web.web_app:app
@@ -32,4 +41,3 @@ services:
       --reload
       --proxy-headers
       --forwarded-allow-ips="*"
-

@@ -1,9 +1,9 @@
 # transcriber_app/web/web_app.py
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from .api.routes import router as api_router
 from .auth.routes import router as auth_router
@@ -26,8 +26,8 @@ def create_app() -> FastAPI:
     # API
     app.include_router(api_router, prefix="/api")
     
-    # Auth
-    app.include_router(auth_router, prefix="/api")
+    # Auth routes (sin prefijo /api)
+    app.include_router(auth_router)
 
     # Ruta absoluta al directorio static
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -54,8 +54,14 @@ def create_app() -> FastAPI:
 
     # Ruta explícita para /
     @app.get("/")
-    async def root():
+    async def root(request: Request):
         print(">>> EJECUTANDO ROOT <<<")
+        # Verificar si está autenticado
+        logged_in = request.cookies.get("logged_in")
+        if not logged_in:
+            # Redirigir a login
+            return RedirectResponse(url="/login")
+        
         index_path = os.path.join(STATIC_DIR, "index.html")
         return FileResponse(index_path)
 
