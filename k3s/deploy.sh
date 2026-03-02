@@ -42,11 +42,11 @@ for IMG in $IMAGES_TO_DELETE; do
 done
 
 kubectl apply -f k3s/namespace.yaml
-kubectl apply -f k3s/secret.yaml
-kubectl apply -f k3s/pvc.yaml
-kubectl apply -f k3s/deployment.yaml
-kubectl apply -f k3s/service.yaml
-kubectl apply -f k3s/ingress.yaml
+kubectl apply -f k3s/secret.yaml -n transcriber
+kubectl apply -f k3s/pvc.yaml -n transcriber
+kubectl apply -f k3s/deployment.yaml  -n transcriber
+kubectl apply -f k3s/service.yaml  -n transcriber
+kubectl apply -f k3s/ingress.yaml  -n transcriber
 
 echo "======================================"
 echo "  📝 Actualizando Deployment en Kubernetes"
