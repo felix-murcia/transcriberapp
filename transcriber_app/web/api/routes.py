@@ -1,7 +1,7 @@
 # transcriber_app/web/api/routes.py
 import os
 import uuid
-from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pathlib import Path
 from transcriber_app.modules.ai.ai_manager import AIManager
@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from .background import process_audio_job
 from .background import JOB_STATUS
 from transcriber_app.modules.logging.logging_config import setup_logging
+from transcriber_app.web.auth.dependencies import is_authenticated, require_auth
 
 # Logging
 logger = setup_logging("transcribeapp")
@@ -24,16 +25,17 @@ router = APIRouter()
 
 @router.post("/upload-audio")
 async def upload_audio(
+    request: Request,
     background_tasks: BackgroundTasks,
     audio: UploadFile = File(...),
     nombre: str = Form(...),
     modo: str = Form(...),
     email: str = Form(...)
 ):
-    logger.info(f"[API ROUTE] Recibido audio: {nombre} con modo: {modo} para email: {email}")
-    """
-    Recibe el audio grabado desde el navegador y lanza el procesamiento.
-    """
+    """Recibe el audio grabado desde el navegador y lanza el procesamiento."""
+    # Verificar autenticación
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Autenticación requerida")
 
     # Validación básica
     if modo not in ["default", "tecnico", "refinamiento", "ejecutivo", "bullet"]:
@@ -87,7 +89,11 @@ def get_status(job_id: str):
 
 
 @router.post("/chat/stream")
-async def chat_stream(payload: dict):
+async def chat_stream(request: Request, payload: dict):
+    # Verificar autenticación
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Autenticación requerida")
+    
     message = payload.get("message", "")
     mode = payload.get("mode", "default")
 
@@ -120,10 +126,15 @@ def check_name(name: str):
 
 @router.post("/process-existing")
 async def process_existing(
+    request: Request,
     nombre: str = Form(...),
     modo: str = Form(...),
     transcription: str = Form(None)
 ):
+    # Verificar autenticación
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Autenticación requerida")
+    
     text = None
     transcript_path = Path("transcripts") / f"{nombre}.txt"
 

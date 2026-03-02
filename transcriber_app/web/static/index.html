@@ -225,5 +225,34 @@
     <!-- Scripts al final para mejor rendimiento -->
     <script src="/static/lib/marked.min.js"></script>
     <script type="module" src="/static/js/main.js?v=033"></script>
+    
+    <!-- Modal de Login -->
+    <div id="loginModal" class="modal" role="dialog" aria-labelledby="loginModalTitle" aria-modal="true">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="loginModalTitle" class="section-title">Iniciar Sesión</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Usuario:</label>
+                    <input type="text" id="loginEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Contraseña:</label>
+                    <input type="password" id="loginPassword" class="form-control" required>
+                </div>
+                <div id="loginError" class="error-text" role="alert" hidden></div>
+                <button type="submit" class="btn btn-primary">Entrar</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Overlay para login obligatorio -->
+    <div id="loginOverlay" class="overlay" role="dialog" aria-labelledby="loginOverlayTitle">
+        <div class="overlay-content">
+            <h2 id="loginOverlayTitle" class="section-title">🔒 Acceso Restringido</h2>
+            <p>Por favor, inicia sesión para acceder a TranscriberApp.</p>
+            <button id="loginOverlayBtn" class="btn btn-primary">Iniciar Sesión</button>
+        </div>
+    </div>
 </body>
 </html>

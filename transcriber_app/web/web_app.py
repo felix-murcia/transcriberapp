@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from .api.routes import router as api_router
+from .auth.routes import router as auth_router
 
 print(">>> CARGANDO WEB_APP.PY REAL <<<")
 
@@ -24,6 +25,9 @@ def create_app() -> FastAPI:
 
     # API
     app.include_router(api_router, prefix="/api")
+    
+    # Auth
+    app.include_router(auth_router, prefix="/api")
 
     # Ruta absoluta al directorio static
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
