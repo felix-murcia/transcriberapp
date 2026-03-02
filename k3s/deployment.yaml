@@ -2,8 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: transcriberapp
-  namespace: default
+  namespace: transcriber
 spec:
+  revisionHistoryLimit: 2
   replicas: 1
   selector:
     matchLabels:

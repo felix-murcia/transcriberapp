@@ -7,7 +7,7 @@ START_TIME=$(date +%s)
 
 # ===== CONFIGURACIÓN =====
 IMAGE_NAME="felixmurcia/transcriberapp"
-NAMESPACE="default"
+NAMESPACE="transcriber"
 DEPLOYMENT="transcriberapp"
 APP_LABEL="transcriberapp"
 
@@ -40,6 +40,13 @@ for IMG in $IMAGES_TO_DELETE; do
   echo "🗑️  Eliminando imagen antigua: $IMG"
   docker rmi -f "$IMG" || true
 done
+
+kubectl apply -f k3s/namespace.yaml
+kubectl apply -f k3s/secret.yaml -n transcriber
+kubectl apply -f k3s/pvc.yaml -n transcriber
+kubectl apply -f k3s/deployment.yaml  -n transcriber
+kubectl apply -f k3s/service.yaml  -n transcriber
+kubectl apply -f k3s/ingress.yaml  -n transcriber
 
 echo "======================================"
 echo "  📝 Actualizando Deployment en Kubernetes"
