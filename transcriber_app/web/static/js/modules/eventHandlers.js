@@ -11,6 +11,7 @@ import {
     getLastRecordingName,
     getProcessedModes,
     resetAllState,
+    setCurrentSessionId,
     setHasTranscript,
     setLastRecordingBlob,
     setLastRecordingDuration,
@@ -195,6 +196,9 @@ async function handleSendAudio() {
                 getProcessedModes()
             );
 
+            // Habilitar botón del chat
+            if (elements.chatToggle) elements.chatToggle.disabled = false;
+
             // Guardar en historial (fusión)
             // Pasamos explícitamente contenido y modo
             await saveToHistoryIfComplete(result.content, result.mode);
@@ -238,6 +242,9 @@ async function handleSendAudio() {
             // Renderizar inmediatamente
             addResultBox(currentMode, mdContent);
             addProcessedMode(currentMode);
+
+            // Habilitar botón del chat
+            if (elements.chatToggle) elements.chatToggle.disabled = false;
 
             await saveToHistoryIfComplete(mdContent, currentMode);
 

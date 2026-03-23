@@ -704,7 +704,6 @@ body.history-open.chat-open .session-status {
     padding: 0.6rem 0.75rem;
     border: 1px solid var(--color-gray-400);
     border-radius: var(--radius-sm);
-    resize: none;
     overflow-y: hidden;
     max-height: 150px;
     font-family: inherit;
