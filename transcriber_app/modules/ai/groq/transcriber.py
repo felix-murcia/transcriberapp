@@ -1,36 +1,55 @@
-# transcriber_app/modules/ai/groq/transcriber.py
-
 import os
 import time
 import tempfile
-import subprocess
 import requests
 from typing import Tuple, Dict, Any
+
 from transcriber_app.config import GROQ_API_KEY
 from transcriber_app.modules.ai.base.transcriber_interface import TranscriberInterface
-
-
-def ensure_wav(input_path: str) -> str:
-    tmp = tempfile.mktemp(suffix=".wav")
-    cmd = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error",
-           "-i", input_path, "-vn", "-acodec", "pcm_s16le",
-           "-ar", "16000", "-ac", "1", tmp]
-    subprocess.run(cmd, check=True)
-    return tmp
+from transcriber_app.modules.ffmpeg_client import convert_audio, clean_audio
 
 
 class GroqTranscriber(TranscriberInterface):
     URL = "https://api.groq.com/openai/v1/audio/transcriptions"
     MODEL = "whisper-large-v3"
 
+    def ensure_wav(self, input_path: str) -> str:
+        """
+        Convierte el archivo a WAV 16kHz mono usando ffmpeg-api.
+        """
+        wav_bytes = convert_audio(input_path, fmt="wav")
+
+        tmp = tempfile.mktemp(suffix=".wav")
+        with open(tmp, "wb") as f:
+            f.write(wav_bytes)
+
+        return tmp
+
+    def clean_wav(self, wav_path: str) -> str:
+        """
+        Limpia el audio usando ffmpeg-api (/audio/clean).
+        """
+        cleaned_bytes = clean_audio(wav_path)
+
+        cleaned_path = tempfile.mktemp(suffix="_clean.wav")
+        with open(cleaned_path, "wb") as f:
+            f.write(cleaned_bytes)
+
+        return cleaned_path
+
     def transcribe(self, audio_path: str) -> Tuple[str, Dict[str, Any]]:
         if not GROQ_API_KEY:
             raise RuntimeError("Falta GROQ_API_KEY")
 
-        wav = ensure_wav(audio_path)
+        # 1. Convertir a WAV estándar
+        wav = self.ensure_wav(audio_path)
+
+        # 2. Limpiar audio (opcional pero recomendado)
+        cleaned_wav = self.clean_wav(wav)
+
         start = time.time()
 
-        with open(wav, "rb") as f:
+        with open(cleaned_wav, "rb") as f:
             resp = requests.post(
                 self.URL,
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
@@ -39,7 +58,17 @@ class GroqTranscriber(TranscriberInterface):
                 timeout=300
             )
 
-        os.unlink(wav)
+        # Limpieza de temporales
+        try:
+            os.unlink(wav)
+        except OSError:
+            pass
+
+        try:
+            os.unlink(cleaned_wav)
+        except OSError:
+            pass
+
         resp.raise_for_status()
 
         text = resp.json().get("text", "").strip()

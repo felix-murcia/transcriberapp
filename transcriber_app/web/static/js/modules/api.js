@@ -98,10 +98,55 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
 
         console.log("Respuesta recibida, status:", response.status);
 
+        // Manejar errores HTTP específicos (4xx, 5xx)
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Error del servidor:", response.status, errorText);
-            throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+            let errorMessage;
+            const status = response.status;
+            
+            // Intentar parsear como JSON primero
+            const contentType = response.headers.get("content-type") || "";
+            let errorDetail = "";
+            
+            if (contentType.includes("application/json")) {
+                try {
+                    const data = await response.json();
+                    errorDetail = data.error || data.message || "";
+                } catch (e) {
+                    // No es JSON válido
+                }
+            }
+            
+            // Si no se pudo obtener detalle del JSON, no incluir el HTML
+            if (!errorDetail) {
+                switch (status) {
+                    case 502:
+                        errorMessage = "El servidor está temporalmente indisponible. Por favor, inténtalo de nuevo en unos minutos.";
+                        break;
+                    case 503:
+                        errorMessage = "Servicio temporalmente no disponible. Por favor, inténtalo más tarde.";
+                        break;
+                    case 504:
+                        errorMessage = "Tiempo de espera agotado con el servidor. Inténtalo de nuevo.";
+                        break;
+                    case 500:
+                        errorMessage = "Error interno del servidor. Por favor, inténtalo más tarde.";
+                        break;
+                    case 404:
+                        errorMessage = "Recurso no encontrado.";
+                        break;
+                    case 401:
+                    case 403:
+                        errorMessage = "No tienes autorización para realizar esta acción.";
+                        break;
+                    default:
+                        errorMessage = `Error del servidor: ${status}`;
+                }
+            } else {
+                errorMessage = errorDetail;
+            }
+            
+            console.error("Error del servidor:", status, errorMessage);
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
@@ -123,15 +168,31 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
         hideOverlay(); // Ocultar si hay error inicial
 
         let errorMessage = "Error al enviar el audio.";
-
-        if (err.name === "TypeError" && err.message.includes("fetch")) {
+        const errMsg = err.message || "";
+        
+        // Verificar si el mensaje contiene HTML (indica que es un error Raw no manejado)
+        const containsHtml = errMsg.includes("<!DOCTYPE") || errMsg.includes("<html");
+        
+        if (err.name === "TypeError" && errMsg.includes("fetch")) {
             errorMessage = "No se pudo conectar con el servidor. Verifica que el servidor esté en ejecución.";
-        } else if (err.message.includes("Failed to fetch")) {
+        } else if (errMsg.includes("Failed to fetch")) {
             errorMessage = "Error de red. Verifica tu conexión a internet.";
-        } else if (err.message.includes("CORS")) {
+        } else if (errMsg.includes("CORS")) {
             errorMessage = "Error de permisos CORS. Contacta al administrador.";
+        } else if (containsHtml) {
+            // El mensaje contiene HTML - extraer información útil o usar mensaje genérico
+            if (errMsg.includes("502")) {
+                errorMessage = "El servidor está temporalmente indisponible. Por favor, inténtalo de nuevo en unos minutos.";
+            } else if (errMsg.includes("503")) {
+                errorMessage = "Servicio temporalmente no disponible. Por favor, inténtalo más tarde.";
+            } else if (errMsg.includes("504")) {
+                errorMessage = "Tiempo de espera agotado con el servidor. Inténtalo de nuevo.";
+            } else {
+                errorMessage = "Error del servidor. Por favor, inténtalo más tarde.";
+            }
         } else {
-            errorMessage = err.message;
+            // Usar el mensaje de error tal cual si está limpio
+            errorMessage = errMsg;
         }
 
         return {

@@ -2,6 +2,9 @@
 venv/
 venv_transcriber/
 .env
+.env.prod
+
+docker-compose.prod.yml
 
 # Ignore personal overrides
 .vscode/settings.json
