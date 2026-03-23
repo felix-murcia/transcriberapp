@@ -19,14 +19,13 @@ logger = setup_logging("transcribeapp")
 
 RECORDINGS_DIR = "recordings"
 
-router = APIRouter()
+router = APIRouter(prefix="", tags=["auth"])
 
 
 def check_auth(request: Request):
     """Verifica si el usuario está autenticado"""
     return request.cookies.get("logged_in") == "true"
-
-
+    
 @router.post("/upload-audio")
 async def upload_audio(
     request: Request,

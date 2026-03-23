@@ -5,15 +5,18 @@ ENV TZ=Europe/Madrid
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    libsndfile1 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+# Copiamos el código
 COPY . .
 
+# Limpiar pycache
+RUN find /app -name "*.pyc" -delete && \
+    find /app -name "__pycache__" -type d -exec rm -rf {} +
+
+# Instalamos dependencias Python
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Instalamos el paquete en modo editable
+RUN pip install --no-cache-dir -e .
 
 EXPOSE 9000

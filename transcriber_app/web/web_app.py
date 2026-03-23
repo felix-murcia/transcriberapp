@@ -17,15 +17,20 @@ def create_app() -> FastAPI:
     # CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[
+            "https://transcriber.nbes.blog",
+            "https://oauth2.nbes.blog",
+            "http://localhost:9000",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Set-Cookie", "X-Login-Success"],
     )
 
     # API
     app.include_router(api_router, prefix="/api")
-    
+
     # Auth routes (sin prefijo /api)
     app.include_router(auth_router)
 
@@ -50,7 +55,11 @@ def create_app() -> FastAPI:
     print(">>> SERVING TRANSCRIPTS FROM:", TRANSCRIPTS_DIR)
 
     # Servir archivos .txt de transcripciones
-    app.mount("/api/transcripciones", StaticFiles(directory=TRANSCRIPTS_DIR), name="transcripciones")
+    app.mount(
+        "/api/transcripciones",
+        StaticFiles(directory=TRANSCRIPTS_DIR),
+        name="transcripciones",
+    )
 
     # Ruta explícita para /
     @app.get("/")
@@ -61,7 +70,7 @@ def create_app() -> FastAPI:
         if not logged_in:
             # Redirigir a login
             return RedirectResponse(url="/login")
-        
+
         index_path = os.path.join(STATIC_DIR, "index.html")
         return FileResponse(index_path)
 
