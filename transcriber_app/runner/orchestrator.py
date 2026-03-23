@@ -52,22 +52,42 @@ class Orchestrator:
         text, metadata = self.transcriber.transcribe(audio_info["path"])
         logger.info(f"[ORCHESTRATOR] Metadata de transcripción: {metadata}")
 
-        # 4. Guardar transcripción
+        # 4. Guardar transcripción en texto plano en /app/transcripts
         safe_name = audio_info["name"].lower()
         self.formatter.save_transcription(safe_name, text, enforce_save=self.save_files)
 
-        # 5. Resumir con Gemini (nuevo sistema)
+        # 5. Eliminar archivo de audio original para liberar espacio
+        self._cleanup_audio_file(audio_info["path"])
+
+        # 6. Resumir con Gemini (nuevo sistema)
         summary_output = AIManager.summarize(text, mode)
 
-        # 6. Log básico del agente
+        # 7. Log básico del agente
         log_agent_result(summary_output)
 
-        # 7. Guardar métricas (SIEMPRE se guardan)
+        # 8. Guardar métricas (SIEMPRE se guardan)
         self.formatter.save_metrics(audio_info["name"], summary_output, mode)
 
-        # 8. Guardar salida final
+        # 9. Guardar salida final
         output_file = self.formatter.save_output(audio_info["name"], summary_output, mode, enforce_save=self.save_files)
         return (output_file, text, summary_output)
+
+    def _cleanup_audio_file(self, audio_path: str) -> None:
+        """
+        Elimina el archivo de audio original después de la transcripción.
+        
+        Args:
+            audio_path: Ruta al archivo de audio a eliminar
+        """
+        if os.path.exists(audio_path):
+            try:
+                file_size = os.path.getsize(audio_path)
+                os.unlink(audio_path)
+                logger.info(f"[ORCHESTRATOR] Audio original eliminado: {audio_path} ({file_size} bytes)")
+            except Exception as e:
+                logger.warning(f"[ORCHESTRATOR] No se pudo eliminar el audio {audio_path}: {e}")
+        else:
+            logger.warning(f"[ORCHESTRATOR] Audio no encontrado para eliminar: {audio_path}")
 
     def run_text(self, text_path, mode="default"):
         logger.info(f"[ORCHESTRATOR] Ejecutando flujo de texto para: {text_path} con modo: {mode}")
