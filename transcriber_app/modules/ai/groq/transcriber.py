@@ -61,12 +61,12 @@ class GroqTranscriber(TranscriberInterface):
         # Limpieza de temporales
         try:
             os.unlink(wav)
-        except:
+        except OSError:
             pass
 
         try:
             os.unlink(cleaned_wav)
-        except:
+        except OSError:
             pass
 
         resp.raise_for_status()

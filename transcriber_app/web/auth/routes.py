@@ -282,7 +282,7 @@ async def oauth_callback(request: Request):
             max_age=86400,
         )
 
-        logger.info(f"[OAUTH_CALLBACK] Login exitoso")
+        logger.info("[OAUTH_CALLBACK] Login exitoso")
         return response
     except Exception as e:
         logger.error(f"[OAUTH_CALLBACK] Error: {e}", exc_info=True)
@@ -453,7 +453,8 @@ async def exchange_token(request: Request, response: Response):
             )
 
             logger.info(
-                f"[EXCHANGE_TOKEN] Login exitoso para: {user_info.get('preferred_username', user_info.get('name', 'user'))}"
+                f"[EXCHANGE_TOKEN] Login exitoso para: "
+                f"{user_info.get('preferred_username', user_info.get('name', 'user'))}"
             )
 
             return JSONResponse(

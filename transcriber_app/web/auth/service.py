@@ -12,26 +12,26 @@ logger = setup_logging("transcribeapp")
 
 class AuthService:
     """Servicio de autenticación básico con credenciales de entorno"""
-    
+
     def __init__(self):
         self._valid_user = os.environ.get("APP_USER", "admin")
         self._valid_password = os.environ.get("APP_PASSWORD", "admin123")
         self._tokens: Dict[str, Dict] = {}
         logger.info(f"[AUTH SERVICE] Inicializado con usuario: {self._valid_user}")
-    
+
     def login(self, email: str, password: str) -> Tuple[bool, Optional[Dict]]:
         """
         Inicia sesión con email y password
-        
+
         Args:
             email: Email del usuario
             password: Contraseña del usuario
-            
+
         Returns:
             (success, user_data)
         """
         logger.info(f"[AUTH SERVICE] Intento de login para: {email}")
-        
+
         if email == self._valid_user and password == self._valid_password:
             user_data = {
                 "id": 1,
@@ -41,24 +41,23 @@ class AuthService:
             }
             logger.info(f"[AUTH SERVICE] Login exitoso para: {email}")
             return True, user_data
-        
+
         logger.warning(f"[AUTH SERVICE] Credenciales incorrectas para: {email}")
         return False, None
-    
+
     def logout(self, user_id: int) -> bool:
         """Cierra sesión"""
-        # Limpiar tokens del usuario
         self._tokens = {k: v for k, v in self._tokens.items() if v.get("user_id") != user_id}
         logger.info(f"[AUTH SERVICE] Logout para user_id: {user_id}")
         return True
-    
+
     def verify_token(self, token: str) -> Optional[Dict]:
         """Verifica un token de autenticación"""
         if token in self._tokens:
             token_data = self._tokens[token]
             return token_data.get("user_data")
         return None
-    
+
     def refresh_token(self, token: str) -> Optional[str]:
         """Refresca un token de autenticación"""
         if token in self._tokens:
@@ -73,11 +72,11 @@ class AuthService:
             del self._tokens[token]
             return new_token
         return None
-    
+
     def get_user_from_token(self, token: str) -> Optional[Dict]:
         """Obtiene los datos del usuario desde un token"""
         return self.verify_token(token)
-    
+
     def create_token(self, user_id: int) -> Optional[str]:
         """Crea un token para un usuario"""
         token = secrets.token_urlsafe(32)

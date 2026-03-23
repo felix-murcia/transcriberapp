@@ -4,8 +4,6 @@ Maneja la sesión y protección de rutas
 """
 from typing import Optional
 from fastapi import Request, HTTPException, status
-from fastapi.responses import JSONResponse
-from .use_cases import get_login_use_case, get_logout_use_case
 from .service import get_auth_service
 
 # Almacén en memoria para sesiones (en producción usar Redis o similar)
@@ -42,7 +40,7 @@ def get_current_user(request: Request) -> Optional[dict]:
     token = request.cookies.get("session_token")
     if not token:
         return None
-    
+
     session = get_session(token)
     if session:
         return session.get("user_data")

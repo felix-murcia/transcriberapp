@@ -4,7 +4,6 @@ import re
 import uuid
 from pathlib import Path
 import sys
-import requests
 
 from transcriber_app.modules.logging.logging_config import setup_logging
 from transcriber_app.modules.ffmpeg_client import get_audio_info, convert_audio, clean_audio

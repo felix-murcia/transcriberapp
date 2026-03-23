@@ -25,7 +25,8 @@ router = APIRouter(prefix="", tags=["auth"])
 def check_auth(request: Request):
     """Verifica si el usuario está autenticado"""
     return request.cookies.get("logged_in") == "true"
-    
+
+
 @router.post("/upload-audio")
 async def upload_audio(
     request: Request,
@@ -96,7 +97,7 @@ async def chat_stream(request: Request, payload: dict):
     # Verificar autenticación
     if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
-    
+
     message = payload.get("message", "")
     mode = payload.get("mode", "default")
 
@@ -137,7 +138,7 @@ async def process_existing(
     # Verificar autenticación
     if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
-    
+
     text = None
     transcript_path = Path("transcripts") / f"{nombre}.txt"
 
