@@ -15,6 +15,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 USE_MODEL = os.getenv("USE_MODEL", "gemini-2.5-flash-lite")
 LANGUAGE = os.getenv("LANGUAGE", "es")
 
+GROQ_API_URL = os.getenv("GROQ_API_URL")
+GROQ_MODEL_TRANSCRIBER = os.getenv("GROQ_MODEL_TRANSCRIBER")
+
+FFMPEG_API_URL = os.getenv("FFMPEG_API_URL", "http://ffmpeg-api-prod:8080")
+
 AVAILABLE_MODES_DICT = {
     "default": "default",
     "tecnico": "tecnico",

@@ -17,9 +17,10 @@ services:
       - "9000:9000"
 
     volumes:
-      - ./audios:/app/audios
-      - ./transcripts:/app/transcripts
-      - ./outputs:/app/outputs
+      - ${TRANSCRIBER_DATA}/audios:/app/audios
+      - ${TRANSCRIBER_DATA}/transcripts:/app/transcripts
+      - ${TRANSCRIBER_DATA}/outputs:/app/outputs
+      - ${TRANSCRIBER_DATA}/outputs/metrics:/app/outputs/metrics
 
     environment:
       TZ: Europe/Madrid
@@ -40,7 +41,11 @@ services:
       OAUTH2_CLIENT_SECRET: ${OAUTH2_CLIENT_SECRET}
 
       # FFmpeg API externo
-      FFMPEG_API_URL: http://ffmpeg-api:8080
+      FFMPEG_API_URL: ${FFMPEG_API_URL}
+
+      # GROQ API
+      GROQ_API_URL: ${GROQ_API_URL}
+      GROQ_MODEL_TRANSCRIBER: ${GROQ_MODEL_TRANSCRIBER}
 
     depends_on:
       - ffmpeg-api

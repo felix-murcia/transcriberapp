@@ -46,6 +46,9 @@ class OutputFormatter:
 
         path = f"outputs/metrics/{name}_{mode}.json"
 
+        # Crear el directorio si no existe
+        os.makedirs("outputs/metrics", exist_ok=True)
+
         import json
         with open(path, "w", encoding="utf-8") as f:
             json.dump(metrics, f, ensure_ascii=False, indent=2)
