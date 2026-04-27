@@ -61,17 +61,85 @@ async function processExistingTranscription(nombre, modo, transcription = null) 
 }
 
 /**
- * Envía un nuevo archivo de audio al servidor
+ * Envía un chunk del archivo de audio al servidor
+ */
+async function uploadChunk(chunk, chunkIndex, totalChunks, uploadId, nombre, modo, email, extension) {
+    console.log(`[CHUNK UPLOAD] Enviando chunk ${chunkIndex + 1}/${totalChunks} (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`);
+
+    const formData = new FormData();
+    formData.append("chunk", chunk);
+    formData.append("chunkIndex", chunkIndex);
+    formData.append("totalChunks", totalChunks);
+    formData.append("uploadId", uploadId);
+    formData.append("nombre", nombre);
+    formData.append("modo", modo);
+    formData.append("email", email);
+    formData.append("extension", extension);
+
+    try {
+        const response = await fetch("/api/upload-chunk", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`[CHUNK UPLOAD] Error en chunk ${chunkIndex + 1}:`, response.status, errorData);
+        } else {
+            console.log(`[CHUNK UPLOAD] Chunk ${chunkIndex + 1}/${totalChunks} aceptado por el servidor`);
+        }
+
+        return response;
+    } catch (err) {
+        console.error(`[CHUNK UPLOAD] Error de red en chunk ${chunkIndex + 1}:`, err);
+        throw err;
+    }
+}
+
+/**
+ * Notifica al servidor que todos los chunks han sido enviados
+ */
+async function completeUpload(uploadId, nombre, modo, email) {
+    console.log(`[UPLOAD COMPLETE] Notificando servidor para ensamblar (uploadId: ${uploadId})`);
+
+    const formData = new FormData();
+    formData.append("uploadId", uploadId);
+    formData.append("nombre", nombre);
+    formData.append("modo", modo);
+    formData.append("email", email);
+
+    try {
+        const response = await fetch("/api/upload-complete", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("[UPLOAD COMPLETE] Error:", response.status, errorData);
+        } else {
+            console.log("[UPLOAD COMPLETE] Solicitud enviada correctamente");
+        }
+
+        return response;
+    } catch (err) {
+        console.error("[UPLOAD COMPLETE] Error de red:", err);
+        throw err;
+    }
+}
+
+/**
+ * Envía un nuevo archivo de audio al servidor en chunks
  */
 async function uploadAudio(audioBlob, nombre, modo, email) {
     if (!audioBlob) {
+        console.error("[UPLOAD AUDIO] No hay grabación disponible");
         return {
             success: false,
             error: "No hay grabación disponible."
         };
     }
 
-    const formData = new FormData();
     // Determinar extensión según MIME type
     let extension = "webm";
     if (audioBlob.type.includes("mp4") || audioBlob.type.includes("aac")) {
@@ -80,80 +148,59 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
         extension = "ogg";
     }
 
-    formData.append("audio", audioBlob, `${nombre}.${extension}`);
-    formData.append("nombre", nombre);
-    formData.append("modo", modo);
-    formData.append("email", email);
+    const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB por chunk
+    const totalSize = audioBlob.size;
+    const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    setStatusText("Procesando audio…");
+    console.log(`[UPLOAD AUDIO] Iniciando subida:`);
+    console.log(`  Nombre: ${nombre}`);
+    console.log(`  Tamaño total: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Número de chunks: ${totalChunks}`);
+    console.log(`  Upload ID: ${uploadId}`);
+    console.log(`  Extensión: .${extension}`);
+
+    setStatusText(`Subiendo audio... (0/${totalChunks} chunks)`);
     showOverlay();
 
     try {
-        console.log("Enviando audio al servidor...");
+        // Enviar cada chunk
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, totalSize);
+            const chunk = audioBlob.slice(start, end);
 
-        const response = await fetch("/api/upload-audio", {
-            method: "POST",
-            body: formData
-        });
+            setStatusText(`Subiendo audio... (${i + 1}/${totalChunks} chunks)`);
 
-        console.log("Respuesta recibida, status:", response.status);
+            const response = await uploadChunk(chunk, i, totalChunks, uploadId, nombre, modo, email, extension);
 
-        // Manejar errores HTTP específicos (4xx, 5xx)
-        if (!response.ok) {
-            let errorMessage;
-            const status = response.status;
-            
-            // Intentar parsear como JSON primero
-            const contentType = response.headers.get("content-type") || "";
-            let errorDetail = "";
-            
-            if (contentType.includes("application/json")) {
-                try {
-                    const data = await response.json();
-                    errorDetail = data.error || data.message || "";
-                } catch (e) {
-                    // No es JSON válido
-                }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Error en chunk ${i + 1}: ${response.status}`);
             }
-            
-            // Si no se pudo obtener detalle del JSON, no incluir el HTML
-            if (!errorDetail) {
-                switch (status) {
-                    case 502:
-                        errorMessage = "El servidor está temporalmente indisponible. Por favor, inténtalo de nuevo en unos minutos.";
-                        break;
-                    case 503:
-                        errorMessage = "Servicio temporalmente no disponible. Por favor, inténtalo más tarde.";
-                        break;
-                    case 504:
-                        errorMessage = "Tiempo de espera agotado con el servidor. Inténtalo de nuevo.";
-                        break;
-                    case 500:
-                        errorMessage = "Error interno del servidor. Por favor, inténtalo más tarde.";
-                        break;
-                    case 404:
-                        errorMessage = "Recurso no encontrado.";
-                        break;
-                    case 401:
-                    case 403:
-                        errorMessage = "No tienes autorización para realizar esta acción.";
-                        break;
-                    default:
-                        errorMessage = `Error del servidor: ${status}`;
-                }
-            } else {
-                errorMessage = errorDetail;
-            }
-            
-            console.error("Error del servidor:", status, errorMessage);
-            throw new Error(errorMessage);
+
+            console.log(`[UPLOAD AUDIO] Chunk ${i + 1}/${totalChunks} enviado y confirmado`);
         }
 
-        const data = await response.json();
-        console.log("Datos recibidos:", data);
+        console.log("[UPLOAD AUDIO] Todos los chunks enviados correctamente");
+
+        // Todos los chunks enviados, ensamblar en servidor
+        setStatusText("Finalizando subida...");
+
+        const completeResponse = await completeUpload(uploadId, nombre, modo, email);
+
+        console.log("[UPLOAD AUDIO] Respuesta de completado recibida, status:", completeResponse.status);
+
+        if (!completeResponse.ok) {
+            const errorData = await completeResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Error al completar subida: ${completeResponse.status}`);
+        }
+
+        const data = await completeResponse.json();
+        console.log("[UPLOAD AUDIO] Datos recibidos del servidor:", data);
 
         if (data.job_id) {
-            // NOTA: NO ocultamos el overlay aquí porque empieza el polling
+            console.log(`[UPLOAD AUDIO] Job creado exitosamente: ${data.job_id}`);
             return {
                 success: true,
                 jobId: data.job_id
@@ -164,37 +211,21 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
             throw new Error("Respuesta del servidor inválida");
         }
     } catch (err) {
-        console.error("Error completo al enviar audio:", err);
-        hideOverlay(); // Ocultar si hay error inicial
+        console.error("[UPLOAD AUDIO] Error completo:", err);
+        hideOverlay();
 
         let errorMessage = "Error al enviar el audio.";
         const errMsg = err.message || "";
-        
-        // Verificar si el mensaje contiene HTML (indica que es un error Raw no manejado)
-        const containsHtml = errMsg.includes("<!DOCTYPE") || errMsg.includes("<html");
-        
-        if (err.name === "TypeError" && errMsg.includes("fetch")) {
-            errorMessage = "No se pudo conectar con el servidor. Verifica que el servidor esté en ejecución.";
-        } else if (errMsg.includes("Failed to fetch")) {
+
+        if (errMsg.includes("Failed to fetch")) {
             errorMessage = "Error de red. Verifica tu conexión a internet.";
         } else if (errMsg.includes("CORS")) {
             errorMessage = "Error de permisos CORS. Contacta al administrador.";
-        } else if (containsHtml) {
-            // El mensaje contiene HTML - extraer información útil o usar mensaje genérico
-            if (errMsg.includes("502")) {
-                errorMessage = "El servidor está temporalmente indisponible. Por favor, inténtalo de nuevo en unos minutos.";
-            } else if (errMsg.includes("503")) {
-                errorMessage = "Servicio temporalmente no disponible. Por favor, inténtalo más tarde.";
-            } else if (errMsg.includes("504")) {
-                errorMessage = "Tiempo de espera agotado con el servidor. Inténtalo de nuevo.";
-            } else {
-                errorMessage = "Error del servidor. Por favor, inténtalo más tarde.";
-            }
         } else {
-            // Usar el mensaje de error tal cual si está limpio
             errorMessage = errMsg;
         }
 
+        console.error("[UPLOAD AUDIO] Error final:", errorMessage);
         return {
             success: false,
             error: errorMessage

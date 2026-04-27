@@ -99,17 +99,25 @@ async function handleJobCompletion(data, onComplete) {
  * Procesa un nuevo archivo de grabación
  */
 async function processNewRecording(audioBlob, nombre, email, modo, onJobStarted, onJobCompleted, onError) {
+    console.log(`[PROCESS NEW] Iniciando procesamiento de grabación:`);
+    console.log(`  Nombre: ${nombre}`);
+    console.log(`  Modo: ${modo}`);
+    console.log(`  Email: ${email}`);
+    console.log(`  Tamaño blob: ${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`);
+
     const result = await uploadAudio(audioBlob, nombre, modo, email);
 
     if (!result.success) {
         hideOverlay();
         alert(result.error);
         setStatusText("Error: " + result.error);
+        console.error(`[PROCESS NEW] Falló subida: ${result.error}`);
         if (onError) onError(result.error);
         return;
     }
 
     if (result.jobId) {
+        console.log(`[PROCESS NEW] Subida exitosa. Job ID: ${result.jobId}. Iniciando polling...`);
         if (onJobStarted) onJobStarted();
         startJobPolling(result.jobId, onJobCompleted, onError);
     }

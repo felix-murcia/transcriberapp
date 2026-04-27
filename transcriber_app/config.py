@@ -1,5 +1,6 @@
 # transcriber_app/config.py
 import os
+import random
 from dotenv import load_dotenv
 from transcriber_app.modules.logging.logging_config import setup_logging
 
@@ -8,6 +9,7 @@ logger = setup_logging("transcribeapp")
 
 load_dotenv()
 
+APP_VERSION = random.randint(1, 1000000)  # Para evitar cache en el frontend
 AVAILABLE_MODES = ["default", "tecnico", "refinamiento", "ejecutivo", "bullet", "comparative", "product_manager", "project_manager", "quality_assurance"]
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")

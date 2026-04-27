@@ -227,7 +227,8 @@
     </div>
 
     <!-- Scripts al final para mejor rendimiento -->
-    <script src="/static/lib/marked.min.js"></script>
-    <script type="module" src="/static/js/main.js?v=033"></script>
+    <script>window.APP_VERSION = "{{APP_VERSION}}";</script>
+    <script src="/static/lib/marked.min.js?v={{APP_VERSION}}"></script>
+    <script type="module" src="/static/js/main.js?v={{APP_VERSION}}"></script>
 </body>
 </html>
