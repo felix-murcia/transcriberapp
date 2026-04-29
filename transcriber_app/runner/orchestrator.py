@@ -41,9 +41,25 @@ class Orchestrator:
         if not validation_result.get("valid", False):
             issues = validation_result.get("issues", [])
             warnings = validation_result.get("warnings", [])
-            error_msg = f"Audio no válido: {', '.join(issues)}" if issues else "Audio no válido"
-            logger.error(f"[ORCHESTRATOR] {error_msg}")
-            raise AudioValidationError(error_msg, validation_result)
+            non_length_issues = [
+                issue for issue in issues
+                if "demasiado largo" not in issue.lower() and "too long" not in issue.lower()
+            ]
+
+            if non_length_issues:
+                error_msg = f"Audio no válido: {', '.join(non_length_issues)}" if non_length_issues else "Audio no válido"
+                logger.error(f"[ORCHESTRATOR] {error_msg}")
+                raise AudioValidationError(error_msg, validation_result)
+
+            logger.warning(
+                f"[ORCHESTRATOR] Audio marcado como inválido solo por duración; se continuará con la transcripción."
+            )
+            validation_result["valid"] = True
+            validation_result["optimal"] = False
+            validation_result["warnings"] = warnings + [
+                issue for issue in issues
+                if "demasiado largo" in issue.lower() or "too long" in issue.lower()
+            ]
 
         if validation_result.get("warnings"):
             logger.warning(f"[ORCHESTRATOR] Advertencias de validación: {validation_result['warnings']}")

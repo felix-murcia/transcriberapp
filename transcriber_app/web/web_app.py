@@ -3,10 +3,19 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 
 from .api.routes import router as api_router
 from .auth.routes import router as auth_router
+from transcriber_app.config import APP_VERSION
+
+
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200 and path.endswith((".js", ".css")):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
 
 print(">>> CARGANDO WEB_APP.PY REAL <<<")
 
@@ -38,8 +47,8 @@ def create_app() -> FastAPI:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-    # Servir archivos estáticos en /static
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    # Servir archivos estáticos en /static (SIN transformaciones de contenido)
+    app.mount("/static", NoCacheStaticFiles(directory=STATIC_DIR), name="static")
 
     # Ruta absoluta al directorio outputs
     OUTPUTS_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "outputs"))
@@ -72,7 +81,13 @@ def create_app() -> FastAPI:
             return RedirectResponse(url="/login")
 
         index_path = os.path.join(STATIC_DIR, "index.html")
-        return FileResponse(index_path)
+        with open(index_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # Reemplazar placeholder de versión para cache busting
+        html_content = html_content.replace("{{APP_VERSION}}", str(APP_VERSION))
+
+        return HTMLResponse(content=html_content)
 
     return app
 

@@ -1,5 +1,6 @@
 # transcriber_app/config.py
 import os
+import random
 from dotenv import load_dotenv
 from transcriber_app.modules.logging.logging_config import setup_logging
 
@@ -8,7 +9,8 @@ logger = setup_logging("transcribeapp")
 
 load_dotenv()
 
-AVAILABLE_MODES = ["default", "tecnico", "refinamiento", "ejecutivo", "bullet"]
+APP_VERSION = random.randint(1, 1000000)  # Para evitar cache en el frontend
+AVAILABLE_MODES = ["default", "tecnico", "refinamiento", "ejecutivo", "bullet", "comparative", "product_manager", "project_manager", "quality_assurance"]
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -26,6 +28,10 @@ AVAILABLE_MODES_DICT = {
     "refinamiento": "refinamiento",
     "ejecutivo": "ejecutivo",
     "bullet": "bullet",
+    "comparative": "comparative",
+    "product_manager": "product_manager",
+    "project_manager": "project_manager",
+    "quality_assurance": "quality_assurance",
 }
 
 logger.info("[CONFIG] Configuración cargada correctamente")

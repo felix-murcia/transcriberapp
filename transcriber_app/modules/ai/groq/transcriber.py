@@ -17,7 +17,8 @@ from transcriber_app.modules.ffmpeg_client import (
     ensure_ffmpeg_api_ready,
     validate_audio,
     convert_audio,
-    clean_audio
+    clean_audio,
+    convert_to_mp3_chunked,
 )
 
 logger = logging.getLogger("transcribeapp")
@@ -75,10 +76,26 @@ class GroqTranscriber(TranscriberInterface):
             
             if not validation['valid']:
                 issues = validation.get('issues', [])
-                error_msg = f"Audio no válido: {', '.join(issues)}"
-                logger.error(f"[GROQ] {error_msg}")
-                raise AudioValidationError(error_msg, validation_result=validation)
-            
+                non_length_issues = [
+                    issue for issue in issues
+                    if "demasiado largo" not in issue.lower() and "too long" not in issue.lower()
+                ]
+
+                if non_length_issues:
+                    error_msg = f"Audio no válido: {', '.join(non_length_issues)}"
+                    logger.error(f"[GROQ] {error_msg}")
+                    raise AudioValidationError(error_msg, validation_result=validation)
+
+                logger.warning(
+                    "[GROQ] Audio marcado como inválido solo por duración; se continuará con la transcripción."
+                )
+                validation['valid'] = True
+                validation['optimal'] = False
+                validation['warnings'] = validation.get('warnings', []) + [
+                    issue for issue in issues
+                    if "demasiado largo" in issue.lower() or "too long" in issue.lower()
+                ]
+
             if not validation['optimal']:
                 warnings = validation.get('warnings', [])
                 logger.warning(f"[GROQ] Audio no óptimo: {', '.join(warnings)}")
@@ -182,21 +199,18 @@ class GroqTranscriber(TranscriberInterface):
             logger.error(f"[GROQ] Error en limpieza: {e}")
             raise
 
-    def _send_to_groq(self, audio_path: str) -> Tuple[str, float]:
-        """
-        Envía el audio a Groq API para transcripción.
-        Retorna (texto, tiempo_transcripcion)
-        """
+    def _send_file_to_groq(self, file_path: str, filename: str, content_type: str) -> Tuple[str, float]:
+        """Envía un archivo de audio a Groq API y devuelve el texto transcrito y el tiempo de envío."""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Archivo no encontrado para enviar a Groq: {file_path}")
+
         start = time.time()
-        
-        # Verificar el archivo final antes de enviar a Groq
-        final_size = os.path.getsize(audio_path)
-        logger.info(f"[GROQ] Archivo final a enviar a Groq: tamaño={final_size} bytes")
-        
-        # Verificar duración con ffprobe
+        final_size = os.path.getsize(file_path)
+        logger.info(f"[GROQ] Enviando {filename} a Groq: {file_path}, tamaño={final_size} bytes")
+
         try:
             result = subprocess.run(
-                ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", audio_path],
+                ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", file_path],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -205,40 +219,81 @@ class GroqTranscriber(TranscriberInterface):
                 info = json.loads(result.stdout)
                 duration = float(info["format"].get("duration", 0))
                 logger.info(f"[GROQ] Duración del audio a enviar: {duration:.2f} segundos")
-                
                 if duration < 0.5:
                     logger.error(f"[GROQ] ¡Audio demasiado corto! {duration:.2f} segundos")
                     raise Exception(f"Audio demasiado corto: {duration:.2f} segundos")
         except Exception as e:
             logger.warning(f"[GROQ] No se pudo verificar duración: {e}")
 
-        with open(audio_path, "rb") as f:
+        with open(file_path, "rb") as f:
             logger.info(f"[GROQ] Enviando petición a Groq API...")
             resp = requests.post(
                 self.URL,
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
                 data={"model": self.MODEL},
-                files={"file": ("audio.wav", f, "audio/wav")},
+                files={"file": (filename, f, content_type)},
                 timeout=300
             )
 
         elapsed = time.time() - start
-        
         logger.info(f"[GROQ] Respuesta status: {resp.status_code}")
-        
         if resp.status_code != 200:
             logger.error(f"[GROQ] Error en respuesta: {resp.text}")
             resp.raise_for_status()
-        
+
         text = resp.json().get("text", "").strip()
         logger.info(f"[GROQ] Texto recibido: '{text[:100]}...' (longitud: {len(text)} caracteres)")
-        
+
         if not text:
-            logger.warning("[GROQ] ¡Texto vacío recibido de Groq!")
+            logger.warning(f"[GROQ] ¡Texto vacío recibido de Groq para {filename}!")
         elif len(text) < 10:
-            logger.warning(f"[GROQ] Texto muy corto: '{text}'")
-        
+            logger.warning(f"[GROQ] Texto muy corto en {filename}: '{text}'")
+
         return text, elapsed
+
+    def _send_to_groq(self, audio_path: str) -> Tuple[str, float]:
+        return self._send_file_to_groq(audio_path, "audio.wav", "audio/wav")
+
+    def _send_to_groq_mp3(self, mp3_path: str) -> Tuple[str, float]:
+        return self._send_file_to_groq(mp3_path, "audio.mp3", "audio/mpeg")
+
+    def _send_to_groq_chunks(self, chunk_paths: list[str]) -> Tuple[str, float]:
+        """Envía varios MP3 chunks a Groq y concatena los resultados."""
+        all_texts = []
+        total_time = 0.0
+        logger.info(f"[GROQ] Enviando {len(chunk_paths)} chunks a Groq... ")
+
+        for idx, chunk_path in enumerate(chunk_paths, start=1):
+            logger.info(f"[GROQ] Enviando chunk {idx}/{len(chunk_paths)}: {chunk_path}")
+            text, elapsed = self._send_to_groq_mp3(chunk_path)
+            all_texts.append(text)
+            total_time += elapsed
+            logger.info(f"[GROQ] Chunk {idx} completado en {elapsed:.2f}s")
+
+        combined_text = "\n".join([t for t in all_texts if t])
+        logger.info(f"[GROQ] Texto combinado de chunks: {len(combined_text)} caracteres")
+        return combined_text, total_time
+
+    def _cleanup_chunked_files(self, chunked: dict) -> None:
+        """Elimina archivos temporales generados por el endpoint chunked."""
+        chunks = chunked.get("chunks", []) or []
+        original_mp3 = chunked.get("original_mp3")
+
+        for chunk_path in chunks:
+            try:
+                if chunk_path and os.path.exists(chunk_path):
+                    os.unlink(chunk_path)
+                    logger.info(f"[GROQ] Eliminado chunk temporal: {chunk_path}")
+            except Exception as e:
+                logger.warning(f"[GROQ] No se pudo eliminar chunk temporal {chunk_path}: {e}")
+
+        if original_mp3:
+            try:
+                if os.path.exists(original_mp3):
+                    os.unlink(original_mp3)
+                    logger.info(f"[GROQ] Eliminado MP3 original temporal: {original_mp3}")
+            except Exception as e:
+                logger.warning(f"[GROQ] No se pudo eliminar MP3 temporal {original_mp3}: {e}")
 
     def transcribe(self, audio_path: str) -> Tuple[str, Dict[str, Any]]:
         """
@@ -273,8 +328,84 @@ class GroqTranscriber(TranscriberInterface):
                 logger.error(f"[GROQ] Validación fallida: {e}")
                 raise
 
+        # Decidir si usar el nuevo endpoint de chunked MP3.
+        # Algunas fuentes comprimidas pueden estar por debajo de 25MB en disco,
+        # pero el WAV interno crece y supera el límite de Groq.
+        transcription_time = 0.0
+        chunked = None
         wav = None
         cleaned_wav = None
+        chunked_attempted = False
+
+        try:
+            if original_size > 25 * 1024 * 1024:
+                chunked_attempted = True
+                chunked = convert_to_mp3_chunked(audio_path, max_size_mb=22)
+
+            if chunked is None or not chunked.get("chunks"):
+                # Convertir a WAV y comprobar su tamaño real antes de enviar a Groq.
+                wav = self.ensure_wav(audio_path)
+                wav_size = os.path.getsize(wav)
+                logger.info(f"[GROQ] WAV temporal generado: {wav} tamaño={wav_size} bytes")
+
+                if wav_size > 25 * 1024 * 1024:
+                    chunked_attempted = True
+                    logger.info("[GROQ] WAV temporal excede 25MB, usando chunked MP3 en su lugar")
+                    chunked = convert_to_mp3_chunked(audio_path, max_size_mb=22)
+
+            if chunked and chunked.get("chunks"):
+                chunks = chunked.get("chunks", [])
+                logger.info(f"[GROQ] Usando chunked MP3 para audio grande: {len(chunks)} fragments")
+                if len(chunks) == 1:
+                    text, transcription_time = self._send_to_groq_mp3(chunks[0])
+                else:
+                    text, transcription_time = self._send_to_groq_chunks(chunks)
+
+                return text, {
+                    "engine": "groq-whisper",
+                    "model": self.MODEL,
+                    "transcription_time": transcription_time,
+                    "audio_duration": None,
+                }
+
+            if chunked_attempted and (chunked is None or not chunked.get("chunks")):
+                logger.warning("[GROQ] No se pudieron obtener chunks válidos; continuando con el flujo WAV tradicional")
+
+            # Si no usamos chunked, continuamos con el flujo WAV normal.
+            if wav is None:
+                wav = self.ensure_wav(audio_path)
+
+            logger.info(f"[GROQ] Paso 1 completado: WAV en {wav}")
+
+            try:
+                cleaned_wav = self.clean_wav(wav)
+                logger.info(f"[GROQ] Paso 2 completado: Audio limpio en {cleaned_wav}")
+                audio_to_send = cleaned_wav
+            except Exception as e:
+                logger.warning(f"[GROQ] No se pudo limpiar el audio, usando WAV original: {e}")
+                audio_to_send = wav
+
+            text, transcription_time = self._send_to_groq(audio_to_send)
+
+            return text, {
+                "engine": "groq-whisper",
+                "model": self.MODEL,
+                "transcription_time": transcription_time,
+                "audio_duration": None,  # Se podría calcular si se quiere
+            }
+        except Exception as e:
+            logger.error(f"[GROQ] Error en transcripción: {e}", exc_info=True)
+            raise
+        finally:
+            if chunked:
+                self._cleanup_chunked_files(chunked)
+            for tmp_file in [wav, cleaned_wav]:
+                if tmp_file and os.path.exists(tmp_file):
+                    try:
+                        os.unlink(tmp_file)
+                        logger.info(f"[GROQ] Eliminado temporal: {tmp_file}")
+                    except Exception as e:
+                        logger.warning(f"[GROQ] No se pudo eliminar {tmp_file}: {e}")
         
         try:
             # 1. Convertir a WAV estándar

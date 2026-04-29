@@ -141,3 +141,30 @@
 .logout-btn:hover {
     background-color: var(--color-danger-dark);
 }
+
+/* Botón de cancelar progreso de subida */
+.btn-cancel-progress {
+    background-color: var(--color-gray-500);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast) ease;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.btn-cancel-progress:hover:not(:disabled) {
+    background-color: var(--color-gray-600);
+    transform: scale(1.05);
+}
+
+.btn-cancel-progress:disabled {
+    background-color: var(--color-gray-300);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+}
+
