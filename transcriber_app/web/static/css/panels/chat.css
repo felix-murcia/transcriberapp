@@ -97,6 +97,43 @@
     font-weight: 600;
 }
 
+.msg-ai pre,
+.msg-ai code {
+    font-family: Consolas, 'Courier New', Monaco, 'Lucida Console', monospace;
+    background-color: #f5f7fa;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+    border-radius: 0.6rem;
+}
+
+.msg-ai pre {
+    margin: 0.75rem 0;
+    padding: 1rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.msg-ai pre code,
+.msg-ai pre tt {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+}
+
+.msg-ai code {
+    display: inline-block;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+}
+
 .chat-input-container {
     padding: 1.5rem;
     border-top: 1px solid var(--color-gray-200);
