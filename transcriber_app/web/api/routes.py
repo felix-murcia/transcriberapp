@@ -18,8 +18,8 @@ from transcriber_app.modules.logging.logging_config import setup_logging
 # Logging
 logger = setup_logging("transcribeapp")
 
-RECORDINGS_DIR = "recordings"
-UPLOADS_TEMP_DIR = "uploads_temp"
+RECORDINGS_DIR = os.getenv("RECORDINGS_DIR", "/tmp/recordings")
+UPLOADS_TEMP_DIR = os.getenv("UPLOADS_TEMP_DIR", "/tmp/audios_chunks")
 Path(UPLOADS_TEMP_DIR).mkdir(exist_ok=True)
 
 router = APIRouter(prefix="", tags=["auth"])
@@ -243,6 +243,36 @@ async def upload_complete(
         "job_id": job_id,
         "message": "Audio recibido. Procesamiento iniciado."
     }
+
+
+@router.post("/upload-cancel")
+async def upload_cancel(
+    request: Request,
+    uploadId: str = Form(...)
+):
+    """Cancela una subida en progreso y elimina los chunks temporales."""
+    # Verificar autenticación
+    if not check_auth(request):
+        logger.warning(f"[UPLOAD CANCEL] Autenticación fallida para uploadId: {uploadId}")
+        raise HTTPException(status_code=401, detail="Autenticación requerida")
+
+    upload_dir = Path(UPLOADS_TEMP_DIR) / uploadId
+
+    if not upload_dir.exists():
+        logger.warning(f"[UPLOAD CANCEL] Upload no encontrado: {uploadId}")
+        raise HTTPException(status_code=404, detail="Upload no encontrado")
+
+    try:
+        shutil.rmtree(upload_dir)
+        logger.info(f"[UPLOAD CANCEL] Chunks eliminados para uploadId: {uploadId}")
+        return {
+            "status": "cancelled",
+            "uploadId": uploadId,
+            "message": "Subida cancelada y chunks eliminados"
+        }
+    except Exception as e:
+        logger.error(f"[UPLOAD CANCEL] Error eliminando {upload_dir}: {e}")
+        raise HTTPException(status_code=500, detail="Error al eliminar chunks")
 
 
 @router.get("/status/{job_id}")

@@ -146,6 +146,58 @@ def convert_audio(path: str, fmt: str = "wav") -> bytes:
         raise
 
 
+def convert_to_mp3_chunked(path: str, max_size_mb: int = 22) -> dict:
+    """Convierte audio a MP3 y lo divide en chunks usando FFmpeg API.
+
+    Diseñado para audios largos que exceden el límite de 25MB.
+    El servidor espera un JSON con la ruta del audio y devuelve metadata de los chunks.
+    """
+    # Verificar salud antes
+    is_healthy, error = check_ffmpeg_api_health()
+    if not is_healthy:
+        raise ConnectionError(f"FFmpeg API no disponible: {error}")
+
+    logger.info(f"[FFMPEG] Convertir a MP3 chunked: {path} (max_size_mb={max_size_mb})")
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Archivo no encontrado: {path}")
+
+    try:
+        response = requests.post(
+            f"{FFMPEG_API}/audio/convert-to-mp3-chunked",
+            json={"path": path, "max_size_mb": max_size_mb},
+            timeout=300
+        )
+        response.raise_for_status()
+
+        result = response.json()
+        if not isinstance(result, dict):
+            raise ValueError("Respuesta inválida de FFmpeg API: se esperaba un objeto JSON")
+
+        if result.get("error"):
+            raise RuntimeError(f"Error en convert-to-mp3-chunked: {result.get('error')}")
+
+        chunks = result.get("chunks", [])
+        total_chunks = result.get("total_chunks", len(chunks))
+        original_mp3 = result.get("original_mp3")
+        needs_chunking = result.get("needs_chunking", len(chunks) > 1)
+
+        logger.info(
+            f"[FFMPEG] MP3 chunked result: total_chunks={total_chunks}, needs_chunking={needs_chunking}, original_mp3={original_mp3}"
+        )
+
+        return {
+            "chunks": chunks,
+            "total_chunks": total_chunks,
+            "original_mp3": original_mp3,
+            "needs_chunking": needs_chunking,
+        }
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"[FFMPEG] Error en convert-to-mp3-chunked: {e}")
+        raise
+
+
 def clean_audio(path: str) -> bytes:
     """Limpia audio usando ffmpeg-api (/audio/clean)"""
     # Verificar salud antes

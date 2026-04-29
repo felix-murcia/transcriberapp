@@ -4,6 +4,7 @@
  */
 
 const APP_VERSION = window.APP_VERSION;
+console.log(window.APP_VERSION)
 
 /**
  * Inicializa toda la aplicación
@@ -18,6 +19,7 @@ async function init() {
     const {
         handleSendAudio,
         setupBeforeUnloadHandler,
+        setupCancelHandler,
         setupChatHandlers,
         setupCollapsibleHandlers,
         setupFileHandlers,
@@ -45,6 +47,7 @@ async function init() {
     setupPrintHandler();
     setupBeforeUnloadHandler();
     setupModalHandlers();
+    setupCancelHandler();
     setupCollapsibleHandlers();
 
     // Asignar manejador principal de envío de audio

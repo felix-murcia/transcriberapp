@@ -3,8 +3,12 @@
  * Gestiona todas las peticiones fetch al backend
  */
 
-import { hideOverlay, setStatusText, showOverlay } from "./ui.js";
+import { hideCancelButton, hideProgressBar, setProgressBar, setStatusText, showProgressBar } from "./ui.js";
+import { clearCurrentUploadId, getCurrentUploadId, setCurrentUploadId } from "./appState.js";
 import { normalizeText } from "./utils.js";
+
+// Controlador de abort para cancelar subidas en progreso
+let currentUploadAbortController = null;
 
 /**
  * Procesa una transcripción existente con un nuevo modo
@@ -18,13 +22,27 @@ async function processExistingTranscription(nombre, modo, transcription = null) 
         formData.append("transcription", transcription);
     }
 
-    showOverlay();
+    showProgressBar();
+    setProgressBar(0);
+    setStatusText("Procesando transcripción...");
+
+    // Simular progreso indeterminado para esta operación
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 10;
+        if (progress <= 90) {
+            setProgressBar(progress);
+        }
+    }, 300);
 
     try {
         const response = await fetch("/api/process-existing", {
             method: "POST",
             body: formData
         });
+
+        clearInterval(progressInterval);
+        setProgressBar(100);
 
         const data = await response.json();
 
@@ -38,32 +56,37 @@ async function processExistingTranscription(nombre, modo, transcription = null) 
                 if (fetchedMd) mdContent = fetchedMd;
             }
 
+            // Breve pausa para mostrar completado
+            await new Promise(resolve => setTimeout(resolve, 300));
+            hideProgressBar();
+
             return {
                 success: true,
                 mode: data.mode || modo,
                 content: mdContent
             };
         } else {
+            hideProgressBar();
             return {
                 success: false,
                 error: "Error procesando la transcripción existente."
             };
         }
     } catch (err) {
+        clearInterval(progressInterval);
+        hideProgressBar();
         console.error("Error:", err);
         return {
             success: false,
             error: "Error procesando la transcripción existente."
         };
-    } finally {
-        hideOverlay();
     }
 }
 
 /**
  * Envía un chunk del archivo de audio al servidor
  */
-async function uploadChunk(chunk, chunkIndex, totalChunks, uploadId, nombre, modo, email, extension) {
+async function uploadChunk(chunk, chunkIndex, totalChunks, uploadId, nombre, modo, email, extension, signal = null) {
     console.log(`[CHUNK UPLOAD] Enviando chunk ${chunkIndex + 1}/${totalChunks} (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`);
 
     const formData = new FormData();
@@ -76,11 +99,17 @@ async function uploadChunk(chunk, chunkIndex, totalChunks, uploadId, nombre, mod
     formData.append("email", email);
     formData.append("extension", extension);
 
+    const fetchOptions = {
+        method: "POST",
+        body: formData
+    };
+
+    if (signal) {
+        fetchOptions.signal = signal;
+    }
+
     try {
-        const response = await fetch("/api/upload-chunk", {
-            method: "POST",
-            body: formData
-        });
+        const response = await fetch("/api/upload-chunk", fetchOptions);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -99,7 +128,7 @@ async function uploadChunk(chunk, chunkIndex, totalChunks, uploadId, nombre, mod
 /**
  * Notifica al servidor que todos los chunks han sido enviados
  */
-async function completeUpload(uploadId, nombre, modo, email) {
+async function completeUpload(uploadId, nombre, modo, email, signal = null) {
     console.log(`[UPLOAD COMPLETE] Notificando servidor para ensamblar (uploadId: ${uploadId})`);
 
     const formData = new FormData();
@@ -108,11 +137,17 @@ async function completeUpload(uploadId, nombre, modo, email) {
     formData.append("modo", modo);
     formData.append("email", email);
 
+    const fetchOptions = {
+        method: "POST",
+        body: formData
+    };
+
+    if (signal) {
+        fetchOptions.signal = signal;
+    }
+
     try {
-        const response = await fetch("/api/upload-complete", {
-            method: "POST",
-            body: formData
-        });
+        const response = await fetch("/api/upload-complete", fetchOptions);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -134,6 +169,9 @@ async function completeUpload(uploadId, nombre, modo, email) {
 async function uploadAudio(audioBlob, nombre, modo, email) {
     if (!audioBlob) {
         console.error("[UPLOAD AUDIO] No hay grabación disponible");
+        clearCurrentUploadId();
+        hideProgressBar();
+        hideCancelButton();
         return {
             success: false,
             error: "No hay grabación disponible."
@@ -153,6 +191,11 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
     const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
     const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Configurar AbortController para poder cancelar
+    const abortController = new AbortController();
+    currentUploadAbortController = abortController;
+    setCurrentUploadId(uploadId);
+
     console.log(`[UPLOAD AUDIO] Iniciando subida:`);
     console.log(`  Nombre: ${nombre}`);
     console.log(`  Tamaño total: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
@@ -160,8 +203,9 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
     console.log(`  Upload ID: ${uploadId}`);
     console.log(`  Extensión: .${extension}`);
 
-    setStatusText(`Subiendo audio... (0/${totalChunks} chunks)`);
-    showOverlay();
+    setStatusText(`Subiendo audio. Parte: (0/${totalChunks})`);
+    showProgressBar();
+    setProgressBar(0);
 
     try {
         // Enviar cada chunk
@@ -170,14 +214,18 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
             const end = Math.min(start + CHUNK_SIZE, totalSize);
             const chunk = audioBlob.slice(start, end);
 
-            setStatusText(`Subiendo audio... (${i + 1}/${totalChunks} chunks)`);
+            setStatusText(`Subiendo audio. Parte: (${i + 1}/${totalChunks})`);
 
-            const response = await uploadChunk(chunk, i, totalChunks, uploadId, nombre, modo, email, extension);
+            const response = await uploadChunk(chunk, i, totalChunks, uploadId, nombre, modo, email, extension, abortController.signal);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `Error en chunk ${i + 1}: ${response.status}`);
             }
+
+            // Actualizar progreso
+            const progress = ((i + 1) / totalChunks) * 100;
+            setProgressBar(progress);
 
             console.log(`[UPLOAD AUDIO] Chunk ${i + 1}/${totalChunks} enviado y confirmado`);
         }
@@ -186,8 +234,9 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
 
         // Todos los chunks enviados, ensamblar en servidor
         setStatusText("Finalizando subida...");
+        setProgressBar(100);
 
-        const completeResponse = await completeUpload(uploadId, nombre, modo, email);
+        const completeResponse = await completeUpload(uploadId, nombre, modo, email, abortController.signal);
 
         console.log("[UPLOAD AUDIO] Respuesta de completado recibida, status:", completeResponse.status);
 
@@ -211,8 +260,17 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
             throw new Error("Respuesta del servidor inválida");
         }
     } catch (err) {
+        // Manejar abort específicamente
+        if (err.name === 'AbortError') {
+            console.log("[UPLOAD AUDIO] Subida abortada por el usuario (AbortError)");
+            hideProgressBar();
+            hideCancelButton();
+            return { success: false, error: "Subida cancelada por el usuario" };
+        }
+
         console.error("[UPLOAD AUDIO] Error completo:", err);
-        hideOverlay();
+        hideProgressBar();
+        hideCancelButton();
 
         let errorMessage = "Error al enviar el audio.";
         const errMsg = err.message || "";
@@ -230,6 +288,13 @@ async function uploadAudio(audioBlob, nombre, modo, email) {
             success: false,
             error: errorMessage
         };
+    } finally {
+        // Limpiar el abortController si aún es el actual
+        if (currentUploadAbortController === abortController) {
+            currentUploadAbortController = null;
+        }
+        // Limpiar el uploadId actual
+        clearCurrentUploadId();
     }
 }
 
@@ -313,10 +378,53 @@ async function* chatStream(message, mode, transcripcion, resumen) {
     }
 }
 
+/**
+ * Cancela una subida en progreso y elimina los chunks en el servidor
+ */
+async function cancelUpload() {
+    const uploadId = getCurrentUploadId();
+
+    if (!uploadId) {
+        console.warn("[CANCEL UPLOAD] No hay uploadId activo");
+        return { success: false, error: "No hay subida activa para cancelar" };
+    }
+
+    // Abortar la subida en curso (si existe)
+    if (currentUploadAbortController) {
+        currentUploadAbortController.abort();
+        console.log("[CANCEL UPLOAD] AbortSignal activado para detener fetchs");
+    }
+
+    // Intentar eliminar los chunks en el servidor
+    try {
+        const formData = new FormData();
+        formData.append("uploadId", uploadId);
+        const response = await fetch("/api/upload-cancel", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("[CANCEL UPLOAD] Error eliminando chunks:", errorData);
+            // No fallamos la cancelación por esto, ya abortamos el frontend
+        } else {
+            console.log("[CANCEL UPLOAD] Chunks eliminados en servidor");
+        }
+    } catch (e) {
+        console.warn("[CANCEL UPLOAD] Error de red al eliminar chunks:", e);
+    }
+
+    clearCurrentUploadId();
+    // La limpieza de UI (hideProgressBar, hideCancelButton) la hará uploadAudio al recibir AbortError
+
+    return { success: true, message: "Cancelación solicitada" };
+}
+
 export {
     chatStream, checkJobStatus,
+    cancelUpload,
     loadMarkdownResult,
     loadTranscriptionFile, processExistingTranscription,
     uploadAudio
 };
-

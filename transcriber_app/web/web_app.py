@@ -9,6 +9,14 @@ from .api.routes import router as api_router
 from .auth.routes import router as auth_router
 from transcriber_app.config import APP_VERSION
 
+
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200 and path.endswith((".js", ".css")):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
+
 print(">>> CARGANDO WEB_APP.PY REAL <<<")
 
 
@@ -40,7 +48,7 @@ def create_app() -> FastAPI:
     STATIC_DIR = os.path.join(BASE_DIR, "static")
 
     # Servir archivos estáticos en /static (SIN transformaciones de contenido)
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", NoCacheStaticFiles(directory=STATIC_DIR), name="static")
 
     # Ruta absoluta al directorio outputs
     OUTPUTS_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "outputs"))
