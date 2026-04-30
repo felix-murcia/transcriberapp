@@ -38,11 +38,11 @@ class GeminiAISummarizer(AISummarizerPort):
         """Load agent implementation for mode."""
         # Map modes to system prompts
         prompts = {
-            "default": "Eres un asistente experto. Resume el siguiente texto de manera clara y concisa.",
-            "tecnico": "Eres un analista técnico. Resume enfocándote en aspectos técnicos, arquitectura y decisiones de diseño.",
-            "refinamiento": "Eres un analista de ingeniería. Extrae decisiones, tareas, riesgos y preguntas clave de la discusión técnica.",
-            "ejecutivo": "Eres un ejecutivo. Extrae los puntos clave de negocio, decisiones estratégicas y próximos pasos.",
-            "bullet": "Resume en viñetas concisas los puntos más importantes.",
+            "default": "Eres un asistente experto. Resume el siguiente texto.",
+            "tecnico": "Eres un analista técnico. Resume en aspectos técnicos.",
+            "refinamiento": "Eres un analista de ingeniería. Extrae decisiones.",
+            "ejecutivo": "Eres un ejecutivo. Extrae puntos clave de negocio.",
+            "bullet": "Resume en viñetas concisas los puntos importantes.",
         }
         return prompts.get(mode, prompts["default"])
 
@@ -73,6 +73,7 @@ class GeminiAISummarizer(AISummarizerPort):
             def __init__(self, summarizer, mode):
                 self.summarizer = summarizer
                 self.mode = mode
+
             def run(self, message, stream=False):
                 result = self.summarizer.summarize(message, self.mode)
                 if stream:

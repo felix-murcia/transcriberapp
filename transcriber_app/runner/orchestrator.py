@@ -52,7 +52,8 @@ class Orchestrator:
                 raise AudioValidationError(error_msg, validation_result)
 
             logger.warning(
-                f"[ORCHESTRATOR] Audio marcado como inválido solo por duración; se continuará con la transcripción."
+                "[ORCHESTRATOR] Audio marcado como inválido solo por duración; "
+                "se continuará con la transcripción."
             )
             validation_result["valid"] = True
             validation_result["optimal"] = False

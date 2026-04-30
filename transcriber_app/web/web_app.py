@@ -17,6 +17,7 @@ class NoCacheStaticFiles(StaticFiles):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return response
 
+
 print(">>> CARGANDO WEB_APP.PY REAL <<<")
 
 

@@ -183,7 +183,10 @@ def convert_to_mp3_chunked(path: str, max_size_mb: int = 22) -> dict:
         needs_chunking = result.get("needs_chunking", len(chunks) > 1)
 
         logger.info(
-            f"[FFMPEG] MP3 chunked result: total_chunks={total_chunks}, needs_chunking={needs_chunking}, original_mp3={original_mp3}"
+            "[FFMPEG] MP3 chunked result: "
+            f"total_chunks={total_chunks}, "
+            f"needs_chunking={needs_chunking}, "
+            f"original_mp3={original_mp3}"
         )
 
         return {

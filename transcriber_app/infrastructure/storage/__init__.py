@@ -83,4 +83,3 @@ class LocalOutputFormatter(OutputFormatterPort):
 
         logger.info(f"[OUTPUT FORMATTER] Metrics saved to: {path}")
         return metrics
-

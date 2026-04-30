@@ -19,7 +19,6 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
     logger.info(f"[BACKGROUND JOB] Parámetros: nombre={nombre!r}, modo={modo!r}, email={email!r}")
 
     audio_path = None
-    original_filename = None
 
     try:
         JOB_STATUS[job_id] = {"status": "running"}
@@ -40,7 +39,6 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
             temp_path = audios_dir / f"{nombre}{ext}"
             if temp_path.exists():
                 audio_path = temp_path
-                original_filename = f"{nombre}{ext}"
                 logger.info(f"[BACKGROUND JOB] Audio encontrado: {audio_path}")
                 break
 
@@ -51,7 +49,6 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
                 matches = list(audios_dir.glob(pattern))
                 if matches:
                     audio_path = matches[0]
-                    original_filename = audio_path.name
                     logger.info(f"[BACKGROUND JOB] Audio encontrado por patrón: {audio_path}")
                     break
 

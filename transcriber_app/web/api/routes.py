@@ -21,8 +21,10 @@ Path(UPLOADS_TEMP_DIR).mkdir(exist_ok=True)
 
 router = APIRouter(prefix="", tags=["auth"])
 
+
 def check_auth(request: Request):
     return request.cookies.get("logged_in") == "true"
+
 
 @router.post("/upload-audio")
 async def upload_audio(
@@ -48,7 +50,7 @@ async def upload_audio(
     audio_path = audios_dir / f"{safe_name}{original_ext}"
     audio_content = await audio.read()
     audio_size = len(audio_content)
-    logger.info(f"[UPLOAD AUDIO] Iniciando subida simple:")
+    logger.info("[UPLOAD AUDIO] Iniciando subida simple")
     logger.info(f"  Nombre: {nombre}")
     logger.info(f"  Tamaño: {audio_size/1024/1024:.2f} MB")
     logger.info(f"  Extensión: {original_ext}")
@@ -61,6 +63,7 @@ async def upload_audio(
     background_tasks.add_task(process_audio_job, job_id=job_id, nombre=safe_name, modo=modo, email=email)
     logger.info(f"[API ROUTE] Job {job_id} iniciado para audio: {nombre} (subida simple)")
     return {"status": "processing", "job_id": job_id, "message": "Audio recibido. Procesamiento iniciado."}
+
 
 @router.post("/upload-chunk")
 async def upload_chunk(
@@ -86,6 +89,7 @@ async def upload_chunk(
     (upload_dir / f"chunk_{chunkIndex:06d}").write_bytes(await chunk.read())
     logger.info(f"[CHUNK UPLOAD] Chunk {chunkIndex + 1}/{totalChunks} recibido")
     return {"status": "chunk_received", "chunkIndex": chunkIndex, "uploadId": uploadId}
+
 
 @router.post("/upload-complete")
 async def upload_complete(
@@ -129,6 +133,7 @@ async def upload_complete(
     logger.info(f"[API ROUTE] Job {job_id} iniciado para: {nombre}")
     return {"status": "processing", "job_id": job_id, "message": "Audio recibido. Procesamiento iniciado."}
 
+
 @router.post("/upload-cancel")
 async def upload_cancel(request: Request, uploadId: str = Form(...)):
     if not check_auth(request):
@@ -140,12 +145,14 @@ async def upload_cancel(request: Request, uploadId: str = Form(...)):
     logger.info(f"[UPLOAD CANCEL] Limpiado: {uploadId}")
     return {"status": "cancelled", "uploadId": uploadId, "message": "Upload cancelado."}
 
+
 @router.get("/status/{job_id}")
 def get_status(job_id: str):
     job_data = JOB_STATUS.get(job_id, "unknown")
     if isinstance(job_data, dict):
         return job_data
     return {"job_id": job_id, "status": job_data}
+
 
 @router.post("/chat/stream")
 async def chat_stream(request: Request, payload: dict):
@@ -154,6 +161,7 @@ async def chat_stream(request: Request, payload: dict):
     message = payload.get("message", "")
     mode = payload.get("mode", "default")
     agent = AIManager.get_agent(mode)
+
     async def chat_stream_gen():
         try:
             for chunk in agent.run(message, stream=True):
@@ -163,6 +171,7 @@ async def chat_stream(request: Request, payload: dict):
             yield f"\n[Error: {str(e)}]"
     return StreamingResponse(chat_stream_gen(), media_type="text/plain")
 
+
 @router.get("/check-name")
 def check_name(name: str):
     for ext in [".webm", ".mp3", ".wav", ".m4a", ".mp4"]:
@@ -171,8 +180,14 @@ def check_name(name: str):
             return {"exists": True, "extension": ext}
     return {"exists": False}
 
+
 @router.post("/process-existing")
-async def process_existing(request: Request, nombre: str = Form(...), modo: str = Form(...), transcription: str = Form(None)):
+async def process_existing(
+    request: Request,
+    nombre: str = Form(...),
+    modo: str = Form(...),
+    transcription: str = Form(None),
+):
     if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
     text = transcription
@@ -187,12 +202,14 @@ async def process_existing(request: Request, nombre: str = Form(...), modo: str 
     orchestrator.formatter.save_metrics(nombre, summary_output, modo)
     return {"status": "done", "mode": modo, "markdown": summary_output, "transcription": text}
 
+
 @router.get("/transcripciones/{filename}")
 def get_transcription(filename: str):
     path = Path("transcripts") / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
     return FileResponse(path, media_type="text/plain")
+
 
 @router.get("/resultados/{filename}")
 def get_result(filename: str):

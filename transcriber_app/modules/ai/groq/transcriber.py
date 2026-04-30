@@ -225,7 +225,7 @@ class GroqTranscriber(TranscriberInterface):
             logger.warning(f"[GROQ] No se pudo verificar duración: {e}")
 
         with open(file_path, "rb") as f:
-            logger.info(f"[GROQ] Enviando petición a Groq API...")
+            logger.info("[GROQ] Enviando petición a Groq API...")
             resp = requests.post(
                 self.URL,
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
