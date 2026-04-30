@@ -66,14 +66,21 @@ Preguntas concretas que requieren respuesta para avanzar. Cada pregunta debe inc
 - **Contexto:** [Por qué es relevante]
 - **Destinatario sugerido:** [Arquitecto, PM, equipo específico]
 
-### **8. Visión Lateral / Observaciones Estratégicas**
+### **8. Preguntas para el Arquitecto**
+Preguntas específicas que requieren revisión técnica o toma de decisiones arquitectónicas:
+- [ ] ¿Cómo impacta esta decisión en la escalabilidad del sistema?
+- [ ] ¿Hay implicaciones de seguridad no discutidas?
+- [ ] ¿Existen alternativas técnicas no evaluadas?
+- [ ] ¿Los riesgos identificados tienen planes de mitigación claros?
+
+### **9. Visión Lateral / Observaciones Estratégicas**
 Análisis que aporte valor más allá de lo explícito. Cada observación debe ser accionable o alertar sobre algo crítico:
 - **Oportunidad:** [Mejora no mencionada pero deducible]
 - **Incoherencia:** [Contradicción entre dos puntos]
 - **Alerta Técnica:** [Impacto en escalabilidad, seguridad, mantenibilidad no discutido]
 - **Alternativa:** [Enfoque diferente que podría ser superior, con justificación]
 
-### **9. Próximos Pasos Inmediatos**
+### **10. Próximos Pasos Inmediatos**
 Lista de acciones concretas para las próximas 24-48 horas:
 - [ ] [Acción] — **Responsable:** [Nombre] — **Plazo:** [Fecha/hora si existe]
 

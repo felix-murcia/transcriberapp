@@ -21,22 +21,22 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
 
     audio_path = None
     original_filename = None
-    
+
     try:
         JOB_STATUS[job_id] = {"status": "running"}
 
         # Buscar el archivo con diferentes extensiones posibles
         audios_dir = Path("audios")
         logger.info(f"[BACKGROUND JOB] Buscando en: {audios_dir.absolute()}")
-        
+
         # Listar todos los archivos en audios/
         if audios_dir.exists():
             all_files = list(audios_dir.glob("*"))
             logger.info(f"[BACKGROUND JOB] Archivos en audios/: {[f.name for f in all_files]}")
-        
+
         # Buscar por nombre base sin extensión
         possible_extensions = [".m4a", ".mp4", ".webm", ".mp3", ".wav", ".aac", ".flac"]
-        
+
         for ext in possible_extensions:
             temp_path = audios_dir / f"{nombre}{ext}"
             if temp_path.exists():
@@ -44,7 +44,7 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
                 original_filename = f"{nombre}{ext}"
                 logger.info(f"[BACKGROUND JOB] Audio encontrado: {audio_path}")
                 break
-        
+
         # Si no se encuentra, buscar cualquier archivo que contenga el nombre
         if not audio_path:
             for ext in possible_extensions:
@@ -120,7 +120,7 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
     except Exception as e:
         JOB_STATUS[job_id] = {"status": "error", "error": str(e)}
         logger.error(f"[BACKGROUND JOB] Error en job {job_id}: {e}", exc_info=True)
-        
+
     finally:
         # Eliminar el audio original (cualquier extensión)
         if audio_path and audio_path.exists():

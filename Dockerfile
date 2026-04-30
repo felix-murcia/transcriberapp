@@ -41,3 +41,5 @@ RUN mkdir -p /app/logs && \
     chmod -R 777 /app/recordings
 
 EXPOSE 9000
+
+# CMD ["uvicorn", "transcriber_app.web.web_app:app", "--host", "0.0.0.0", "--port", "9000", "--log-level", "info"]

@@ -5,7 +5,7 @@ Implementación que usa credenciales de entorno
 import os
 import secrets
 from typing import Tuple, Optional, Dict
-from transcriber_app.modules.logging.logging_config import setup_logging
+from transcriber_app.infrastructure.logging.logging_config import setup_logging
 
 logger = setup_logging("transcribeapp")
 
