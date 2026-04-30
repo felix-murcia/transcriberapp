@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 
 from .api.routes import router as api_router
 from .auth.routes import router as auth_router
@@ -16,6 +16,7 @@ class NoCacheStaticFiles(StaticFiles):
         if response.status_code == 200 and path.endswith((".js", ".css")):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return response
+
 
 print(">>> CARGANDO WEB_APP.PY REAL <<<")
 

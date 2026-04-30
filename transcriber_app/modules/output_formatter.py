@@ -29,12 +29,12 @@ class OutputFormatter:
     def save_transcription(self, base_name: str, text: str, enforce_save: bool = True) -> str:
         """
         Guarda la transcripción en texto plano en /app/transcripts.
-        
+
         Args:
             base_name: Nombre base del archivo
             text: Texto de la transcripción
             enforce_save: Si True, fuerza el guardado en disco
-            
+
         Returns:
             Ruta donde se guardó la transcripción
         """

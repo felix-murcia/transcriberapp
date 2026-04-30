@@ -47,12 +47,14 @@ class Orchestrator:
             ]
 
             if non_length_issues:
-                error_msg = f"Audio no válido: {', '.join(non_length_issues)}" if non_length_issues else "Audio no válido"
+                issues_str = ", ".join(non_length_issues)
+                error_msg = f"Audio no válido: {issues_str}"
                 logger.error(f"[ORCHESTRATOR] {error_msg}")
                 raise AudioValidationError(error_msg, validation_result)
 
             logger.warning(
-                f"[ORCHESTRATOR] Audio marcado como inválido solo por duración; se continuará con la transcripción."
+                "[ORCHESTRATOR] Audio marcado como inválido solo por duración; "
+                "se continuará con la transcripción."
             )
             validation_result["valid"] = True
             validation_result["optimal"] = False
@@ -91,7 +93,7 @@ class Orchestrator:
     def _cleanup_audio_file(self, audio_path: str) -> None:
         """
         Elimina el archivo de audio original después de la transcripción.
-        
+
         Args:
             audio_path: Ruta al archivo de audio a eliminar
         """

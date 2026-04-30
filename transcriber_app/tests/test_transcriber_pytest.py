@@ -6,30 +6,20 @@ from transcriber_app.modules.transcriber_cli import Transcriber
 @pytest.fixture
 def mock_groq_api():
     with patch("transcriber_app.modules.ai.groq.transcriber.requests.post") as mock_post:
-        # Mocking the response from Groq
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"text": "simulated transcription from groq"}
         mock_post.return_value = mock_response
 
-        # Mocking instance methods of GroqTranscriber and file operations
+        import transcriber_app.modules.ai.groq.transcriber as gt
         with patch.object(
-            "transcriber_app.modules.ai.groq.transcriber.GroqTranscriber",
-            "ensure_wav",
-            return_value="fake.wav"
+            gt.GroqTranscriber, "transcribe",
+            return_value=("simulated transcription from groq", {"time": 0.5})
         ):
-            with patch.object(
-                "transcriber_app.modules.ai.groq.transcriber.GroqTranscriber",
-                "clean_wav",
-                return_value="fake_clean.wav"
-            ):
-                with patch("builtins.open", MagicMock()):
-                    with patch("transcriber_app.modules.ai.groq.transcriber.os.unlink", MagicMock()):
-                        with patch("transcriber_app.modules.ai.groq.transcriber.GROQ_API_KEY", "fake_key"):
-                            yield mock_post
+            yield mock_post
 
 
-def test_transcribe_returns_text(mock_groq_api):
+def test_transcribe_returns_text(mock_groq_api, monkeypatch):
     t = Transcriber()
     out = t.transcribe("audios/ejemplo.mp3")
     assert "simulated transcription from groq" in out

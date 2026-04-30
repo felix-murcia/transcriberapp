@@ -15,7 +15,7 @@ def cleanup_jobs():
 
 
 def test_check_name_endpoint():
-    with patch("transcriber_app.web.api.routes.os.path.exists", return_value=True):
+    with patch("transcriber_app.web.api.routes.Path.exists", return_value=True):
         response = client.get("/api/check-name?name=test")
         assert response.status_code == 200
         assert response.json() == {"exists": True, "extension": ".webm"}
