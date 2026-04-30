@@ -47,7 +47,8 @@ class Orchestrator:
             ]
 
             if non_length_issues:
-                error_msg = f"Audio no válido: {', '.join(non_length_issues)}" if non_length_issues else "Audio no válido"
+                issues_str = ", ".join(non_length_issues)
+                error_msg = f"Audio no válido: {issues_str}"
                 logger.error(f"[ORCHESTRATOR] {error_msg}")
                 raise AudioValidationError(error_msg, validation_result)
 

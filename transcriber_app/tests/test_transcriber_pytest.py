@@ -12,7 +12,10 @@ def mock_groq_api():
         mock_post.return_value = mock_response
 
         import transcriber_app.modules.ai.groq.transcriber as gt
-        with patch.object(gt.GroqTranscriber, "transcribe", return_value=("simulated transcription from groq", {"time": 0.5})):
+        with patch.object(
+            gt.GroqTranscriber, "transcribe",
+            return_value=("simulated transcription from groq", {"time": 0.5})
+        ):
             yield mock_post
 
 
