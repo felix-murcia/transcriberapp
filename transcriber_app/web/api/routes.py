@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse, FileResponse
 from transcriber_app.modules.ai.ai_manager import AIManager
-from transcriber_app.runner.orchestrator import Orchestrator, AudioValidationError
+from transcriber_app.runner.orchestrator import Orchestrator
 from transcriber_app.modules.output_formatter import OutputFormatter
 from transcriber_app.modules.audio_receiver import AudioReceiver
 from transcriber_app.modules.ai.groq.transcriber import GroqTranscriber
@@ -25,7 +25,14 @@ def check_auth(request: Request):
     return request.cookies.get("logged_in") == "true"
 
 @router.post("/upload-audio")
-async def upload_audio(request: Request, background_tasks: BackgroundTasks, audio: UploadFile = File(...), nombre: str = Form(...), modo: str = Form(...), email: str = Form(...)):
+async def upload_audio(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    audio: UploadFile = File(...),
+    nombre: str = Form(...),
+    modo: str = Form(...),
+    email: str = Form(...),
+):
     if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
     if modo not in ["default", "tecnico", "refinamiento", "ejecutivo", "bullet"]:
@@ -56,7 +63,17 @@ async def upload_audio(request: Request, background_tasks: BackgroundTasks, audi
     return {"status": "processing", "job_id": job_id, "message": "Audio recibido. Procesamiento iniciado."}
 
 @router.post("/upload-chunk")
-async def upload_chunk(request: Request, chunk: UploadFile = File(...), chunkIndex: int = Form(...), totalChunks: int = Form(...), uploadId: str = Form(...), nombre: str = Form(...), modo: str = Form(...), email: str = Form(...), extension: str = Form(...)):
+async def upload_chunk(
+    request: Request,
+    chunk: UploadFile = File(...),
+    chunkIndex: int = Form(...),
+    totalChunks: int = Form(...),
+    uploadId: str = Form(...),
+    nombre: str = Form(...),
+    modo: str = Form(...),
+    email: str = Form(...),
+    extension: str = Form(...),
+):
     if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
     if modo not in ["default", "tecnico", "refinamiento", "ejecutivo", "bullet"]:
@@ -71,7 +88,14 @@ async def upload_chunk(request: Request, chunk: UploadFile = File(...), chunkInd
     return {"status": "chunk_received", "chunkIndex": chunkIndex, "uploadId": uploadId}
 
 @router.post("/upload-complete")
-async def upload_complete(request: Request, background_tasks: BackgroundTasks, uploadId: str = Form(...), nombre: str = Form(...), modo: str = Form(...), email: str = Form(...)):
+async def upload_complete(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    uploadId: str = Form(...),
+    nombre: str = Form(...),
+    modo: str = Form(...),
+    email: str = Form(...),
+):
     if not check_auth(request):
         raise HTTPException(status_code=401, detail="Autenticación requerida")
     if modo not in ["default", "tecnico", "refinamiento", "ejecutivo", "bullet"]:

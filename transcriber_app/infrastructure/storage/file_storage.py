@@ -3,8 +3,6 @@ Infrastructure layer - file storage implementations.
 Concrete implementations of file storage ports.
 """
 
-import os
-import shutil
 from pathlib import Path
 from typing import List
 from transcriber_app.domain.ports import FileStoragePort

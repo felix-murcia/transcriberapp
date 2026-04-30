@@ -5,7 +5,6 @@ Concrete implementations of authentication and session management.
 
 from typing import Optional, Dict, Any
 from transcriber_app.domain.ports import SessionManagerPort
-from transcriber_app.domain.exceptions import AuthenticationError, AuthorizationError
 
 
 class InMemorySessionManager(SessionManagerPort):

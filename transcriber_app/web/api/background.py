@@ -7,7 +7,6 @@ from transcriber_app.modules.ai.groq.transcriber import GroqTranscriber
 from transcriber_app.modules.logging.logging_config import setup_logging
 from pathlib import Path
 import os
-import glob
 
 # Logging
 logger = setup_logging("transcribeapp")

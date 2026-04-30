@@ -11,7 +11,7 @@ from transcriber_app.domain.ports import (
     JobStatusRepositoryPort,
     AISummarizerPort
 )
-from transcriber_app.domain.entities import TranscriptionJob, ProcessingResult, AudioFile
+from transcriber_app.domain.entities import TranscriptionJob, ProcessingResult
 from transcriber_app.domain.exceptions import AudioValidationError
 
 

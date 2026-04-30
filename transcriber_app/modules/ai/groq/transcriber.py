@@ -9,10 +9,9 @@ import subprocess
 import json
 from typing import Tuple, Dict, Any, Optional
 
-from transcriber_app.config import GROQ_API_KEY, FFMPEG_API_URL
+from transcriber_app.config import GROQ_API_KEY
 from transcriber_app.modules.ai.base.transcriber_interface import TranscriberInterface
 from transcriber_app.modules.ffmpeg_client import (
-    check_ffmpeg_api_health,
     check_gpu_status,
     ensure_ffmpeg_api_ready,
     validate_audio,
@@ -38,7 +37,7 @@ class GroqTranscriber(TranscriberInterface):
     def __init__(self, skip_validation: bool = False):
         """
         Inicializa el transcriber de Groq.
-        
+
         Args:
             skip_validation: Si es True, omite la validación del audio (útil para debugging)
         """
@@ -47,19 +46,19 @@ class GroqTranscriber(TranscriberInterface):
     def _ensure_ffmpeg_api_ready(self) -> bool:
         """Verifica que FFmpeg API esté listo"""
         logger.info("[GROQ] Verificando disponibilidad de FFmpeg API...")
-        
+
         if not ensure_ffmpeg_api_ready(timeout=10):
             error_msg = "FFmpeg API no disponible. No se puede procesar el audio."
             logger.error(f"[GROQ] {error_msg}")
             raise ConnectionError(error_msg)
-        
+
         # Verificar GPU status (solo informativo)
         gpu_available, gpu_info = check_gpu_status()
         if gpu_available:
             logger.info(f"[GROQ] GPU disponible para procesamiento: {gpu_info.get('gpu_name')}")
         else:
             logger.info("[GROQ] GPU no disponible, usando CPU para procesamiento")
-        
+
         return True
 
     def _validate_audio_file(self, audio_path: str) -> Dict[str, Any]:
@@ -68,12 +67,12 @@ class GroqTranscriber(TranscriberInterface):
         Lanza AudioValidationError si el audio no es válido.
         """
         logger.info(f"[GROQ] Validando audio: {audio_path}")
-        
+
         try:
             validation = validate_audio(audio_path)
-            
+
             logger.info(f"[GROQ] Validación completada: válido={validation['valid']}, óptimo={validation['optimal']}")
-            
+
             if not validation['valid']:
                 issues = validation.get('issues', [])
                 non_length_issues = [
@@ -102,9 +101,9 @@ class GroqTranscriber(TranscriberInterface):
                 recommendations = validation.get('recommendations', [])
                 if recommendations:
                     logger.info(f"[GROQ] Recomendaciones: {', '.join(recommendations)}")
-            
+
             return validation
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"[GROQ] Error validando audio: {e}")
             # Si no podemos validar, continuamos con advertencia pero no bloqueamos
@@ -121,21 +120,21 @@ class GroqTranscriber(TranscriberInterface):
         Convierte el archivo a WAV 16kHz mono usando ffmpeg-api.
         """
         logger.info(f"[GROQ] ensure_wav: {input_path}")
-        
+
         # Verificar archivo original
         if not os.path.exists(input_path):
             raise FileNotFoundError(f"Archivo no existe: {input_path}")
-        
+
         original_size = os.path.getsize(input_path)
         logger.info(f"[GROQ] Archivo original: tamaño={original_size} bytes")
-        
+
         # Verificar que FFmpeg API está disponible
         self._ensure_ffmpeg_api_ready()
-        
+
         # Llamar a FFmpeg API usando la función centralizada
         try:
             wav_bytes = convert_audio(input_path, fmt="wav")
-            
+
             if len(wav_bytes) < 1000:
                 logger.error(f"[GROQ] ¡Audio convertido demasiado pequeño! {len(wav_bytes)} bytes")
                 # Guardar para debug
@@ -143,7 +142,7 @@ class GroqTranscriber(TranscriberInterface):
                 with open(debug_path, "wb") as f:
                     f.write(wav_bytes)
                 logger.error(f"[GROQ] Debug guardado en {debug_path}")
-                
+
                 # Verificar con ffprobe
                 try:
                     result = subprocess.run(
@@ -156,14 +155,14 @@ class GroqTranscriber(TranscriberInterface):
                         logger.error(f"[GROQ] ffprobe del archivo fallido: {info}")
                 except Exception as e:
                     logger.error(f"[GROQ] Error verificando archivo fallido: {e}")
-            
+
             tmp = tempfile.mktemp(suffix=".wav")
             with open(tmp, "wb") as f:
                 f.write(wav_bytes)
-            
+
             logger.info(f"[GROQ] WAV guardado en: {tmp}, tamaño={os.path.getsize(tmp)} bytes")
             return tmp
-            
+
         except Exception as e:
             logger.error(f"[GROQ] Error en conversión: {e}")
             raise
@@ -171,30 +170,30 @@ class GroqTranscriber(TranscriberInterface):
     def clean_wav(self, wav_path: str) -> str:
         """Limpia el audio usando ffmpeg-api (/audio/clean)."""
         logger.info(f"[GROQ] clean_wav: {wav_path}")
-        
+
         if not os.path.exists(wav_path):
             raise FileNotFoundError(f"WAV no existe: {wav_path}")
-        
+
         wav_size = os.path.getsize(wav_path)
         logger.info(f"[GROQ] WAV a limpiar: tamaño={wav_size} bytes")
-        
+
         try:
             cleaned_bytes = clean_audio(wav_path)
-            
+
             if len(cleaned_bytes) < 1000:
                 logger.error(f"[GROQ] ¡Audio limpiado demasiado pequeño! {len(cleaned_bytes)} bytes")
                 debug_path = "/tmp/debug_clean_failed.wav"
                 with open(debug_path, "wb") as f:
                     f.write(cleaned_bytes)
                 logger.error(f"[GROQ] Debug guardado en {debug_path}")
-            
+
             cleaned_path = tempfile.mktemp(suffix="_clean.wav")
             with open(cleaned_path, "wb") as f:
                 f.write(cleaned_bytes)
-            
+
             logger.info(f"[GROQ] WAV limpio guardado en: {cleaned_path}, tamaño={os.path.getsize(cleaned_path)} bytes")
             return cleaned_path
-            
+
         except Exception as e:
             logger.error(f"[GROQ] Error en limpieza: {e}")
             raise
@@ -298,10 +297,10 @@ class GroqTranscriber(TranscriberInterface):
     def transcribe(self, audio_path: str) -> Tuple[str, Dict[str, Any]]:
         """
         Transcribe un archivo de audio usando Groq Whisper.
-        
+
         Args:
             audio_path: Ruta al archivo de audio
-            
+
         Returns:
             Tuple con (texto_transcrito, metadata)
         """
@@ -309,16 +308,16 @@ class GroqTranscriber(TranscriberInterface):
             raise RuntimeError("Falta GROQ_API_KEY")
 
         logger.info(f"[GROQ] Iniciando transcripción: {audio_path}")
-        
+
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio no encontrado: {audio_path}")
-        
+
         original_size = os.path.getsize(audio_path)
         logger.info(f"[GROQ] Audio original: {audio_path}, tamaño={original_size} bytes")
 
         # Verificar FFmpeg API antes de empezar
         self._ensure_ffmpeg_api_ready()
-        
+
         # Validar audio (si no se omite)
         if not self.skip_validation:
             try:
@@ -406,7 +405,7 @@ class GroqTranscriber(TranscriberInterface):
                         logger.info(f"[GROQ] Eliminado temporal: {tmp_file}")
                     except Exception as e:
                         logger.warning(f"[GROQ] No se pudo eliminar {tmp_file}: {e}")
-        
+
         try:
             # 1. Convertir a WAV estándar
             wav = self.ensure_wav(audio_path)
@@ -431,7 +430,7 @@ class GroqTranscriber(TranscriberInterface):
                 "transcription_time": transcription_time,
                 "audio_duration": None,  # Se podría calcular si se quiere
             }
-            
+
         except Exception as e:
             logger.error(f"[GROQ] Error en transcripción: {e}", exc_info=True)
             raise

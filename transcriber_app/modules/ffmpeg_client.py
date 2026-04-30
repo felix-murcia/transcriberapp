@@ -17,7 +17,7 @@ def check_ffmpeg_api_health() -> Tuple[bool, Optional[str]]:
     try:
         logger.info(f"[FFMPEG] Verificando salud de FFmpeg API: {FFMPEG_API}/health")
         response = requests.get(f"{FFMPEG_API}/health", timeout=5)
-        
+
         if response.status_code == 200:
             data = response.json()
             logger.info(f"[FFMPEG] FFmpeg API saludable: {data}")
@@ -26,17 +26,17 @@ def check_ffmpeg_api_health() -> Tuple[bool, Optional[str]]:
             error_msg = f"FFmpeg API respondió con status {response.status_code}"
             logger.error(f"[FFMPEG] {error_msg}")
             return False, error_msg
-            
+
     except requests.exceptions.Timeout:
         error_msg = f"FFmpeg API timeout después de 5 segundos en {FFMPEG_API}"
         logger.error(f"[FFMPEG] {error_msg}")
         return False, error_msg
-        
+
     except requests.exceptions.ConnectionError:
         error_msg = f"No se pudo conectar a FFmpeg API en {FFMPEG_API}"
         logger.error(f"[FFMPEG] {error_msg}")
         return False, error_msg
-        
+
     except Exception as e:
         error_msg = f"Error verificando FFmpeg API: {str(e)}"
         logger.error(f"[FFMPEG] {error_msg}")
@@ -51,7 +51,7 @@ def check_gpu_status() -> Tuple[bool, Optional[Dict[str, Any]]]:
     try:
         logger.info(f"[FFMPEG] Verificando estado GPU: {FFMPEG_API}/gpu-status")
         response = requests.get(f"{FFMPEG_API}/gpu-status", timeout=5)
-        
+
         if response.status_code == 200:
             data = response.json()
             if data.get("gpu_available"):
@@ -63,7 +63,7 @@ def check_gpu_status() -> Tuple[bool, Optional[Dict[str, Any]]]:
         else:
             logger.warning(f"[FFMPEG] No se pudo obtener estado GPU: {response.status_code}")
             return False, None
-            
+
     except Exception as e:
         logger.warning(f"[FFMPEG] Error verificando GPU: {e}")
         return False, None
@@ -75,16 +75,16 @@ def get_audio_info(path: str) -> dict:
     is_healthy, error = check_ffmpeg_api_health()
     if not is_healthy:
         raise ConnectionError(f"FFmpeg API no disponible: {error}")
-    
+
     logger.info(f"[FFMPEG] Obteniendo info de audio: {path}")
-    
+
     # Verificar que el archivo existe
     if not os.path.exists(path):
         raise FileNotFoundError(f"Archivo no encontrado: {path}")
-    
+
     file_size = os.path.getsize(path)
     logger.info(f"[FFMPEG] Archivo: {path}, tamaño={file_size} bytes")
-    
+
     try:
         with open(path, "rb") as f:
             r = requests.post(
@@ -107,16 +107,16 @@ def convert_audio(path: str, fmt: str = "wav") -> bytes:
     is_healthy, error = check_ffmpeg_api_health()
     if not is_healthy:
         raise ConnectionError(f"FFmpeg API no disponible: {error}")
-    
+
     logger.info(f"[FFMPEG] Convertir audio: {path} -> {fmt}")
-    
+
     # Verificar que el archivo existe
     if not os.path.exists(path):
         raise FileNotFoundError(f"Archivo no encontrado: {path}")
-    
+
     file_size = os.path.getsize(path)
     logger.info(f"[FFMPEG] Archivo original: {path}, tamaño={file_size} bytes")
-    
+
     try:
         with open(path, "rb") as f:
             r = requests.post(
@@ -126,10 +126,10 @@ def convert_audio(path: str, fmt: str = "wav") -> bytes:
                 timeout=60  # Mayor timeout para conversiones largas
             )
         r.raise_for_status()
-        
+
         result_bytes = r.content
         logger.info(f"[FFMPEG] Conversión exitosa: tamaño salida={len(result_bytes)} bytes")
-        
+
         if len(result_bytes) < 1000:
             logger.warning(f"[FFMPEG] ¡Archivo convertido muy pequeño! {len(result_bytes)} bytes")
             # Guardar para debug
@@ -138,9 +138,9 @@ def convert_audio(path: str, fmt: str = "wav") -> bytes:
             with open(debug_path, "wb") as f:
                 f.write(result_bytes)
             logger.warning(f"[FFMPEG] Debug guardado en {debug_path}")
-        
+
         return result_bytes
-        
+
     except requests.exceptions.RequestException as e:
         logger.error(f"[FFMPEG] Error en conversión: {e}")
         raise
@@ -204,16 +204,16 @@ def clean_audio(path: str) -> bytes:
     is_healthy, error = check_ffmpeg_api_health()
     if not is_healthy:
         raise ConnectionError(f"FFmpeg API no disponible: {error}")
-    
+
     logger.info(f"[FFMPEG] Limpiando audio: {path}")
-    
+
     # Verificar que el archivo existe
     if not os.path.exists(path):
         raise FileNotFoundError(f"Archivo no encontrado: {path}")
-    
+
     file_size = os.path.getsize(path)
     logger.info(f"[FFMPEG] Archivo a limpiar: {path}, tamaño={file_size} bytes")
-    
+
     try:
         with open(path, "rb") as f:
             r = requests.post(
@@ -222,10 +222,10 @@ def clean_audio(path: str) -> bytes:
                 timeout=120  # Mayor timeout para limpieza
             )
         r.raise_for_status()
-        
+
         result_bytes = r.content
         logger.info(f"[FFMPEG] Limpieza exitosa: tamaño salida={len(result_bytes)} bytes")
-        
+
         if len(result_bytes) < 1000:
             logger.warning(f"[FFMPEG] ¡Archivo limpiado muy pequeño! {len(result_bytes)} bytes")
             import tempfile
@@ -233,9 +233,9 @@ def clean_audio(path: str) -> bytes:
             with open(debug_path, "wb") as f:
                 f.write(result_bytes)
             logger.warning(f"[FFMPEG] Debug guardado en {debug_path}")
-        
+
         return result_bytes
-        
+
     except requests.exceptions.RequestException as e:
         logger.error(f"[FFMPEG] Error en limpieza: {e}")
         raise
@@ -259,16 +259,16 @@ def validate_audio(path: str) -> dict:
     is_healthy, error = check_ffmpeg_api_health()
     if not is_healthy:
         raise ConnectionError(f"FFmpeg API no disponible: {error}")
-    
+
     logger.info(f"[FFMPEG] Validando audio: {path}")
-    
+
     # Verificar que el archivo existe
     if not os.path.exists(path):
         raise FileNotFoundError(f"Archivo no encontrado: {path}")
-    
+
     file_size = os.path.getsize(path)
     logger.info(f"[FFMPEG] Archivo a validar: {path}, tamaño={file_size} bytes")
-    
+
     try:
         with open(path, "rb") as f:
             r = requests.post(
@@ -277,16 +277,16 @@ def validate_audio(path: str) -> dict:
                 timeout=60
             )
         r.raise_for_status()
-        
+
         result = r.json()
-        
+
         if result.get("valid"):
             logger.info(f"[FFMPEG] Audio válido: duración={result['metadata'].get('duration_seconds')}s")
         else:
             logger.warning(f"[FFMPEG] Audio inválido: issues={result.get('issues')}")
-        
+
         return result
-        
+
     except requests.exceptions.RequestException as e:
         logger.error(f"[FFMPEG] Error en validación: {e}")
         raise
@@ -298,9 +298,9 @@ def ensure_ffmpeg_api_ready(timeout: int = 30) -> bool:
     Retorna True si está listo dentro del timeout, False en caso contrario.
     """
     import time
-    
+
     logger.info(f"[FFMPEG] Esperando a que FFmpeg API esté listo (timeout={timeout}s)...")
-    
+
     start_time = time.time()
     while time.time() - start_time < timeout:
         is_healthy, error = check_ffmpeg_api_health()
@@ -309,6 +309,6 @@ def ensure_ffmpeg_api_ready(timeout: int = 30) -> bool:
             return True
         logger.info(f"[FFMPEG] FFmpeg API no listo aún, reintentando... ({error})")
         time.sleep(2)
-    
+
     logger.error(f"[FFMPEG] FFmpeg API no está listo después de {timeout} segundos")
     return False

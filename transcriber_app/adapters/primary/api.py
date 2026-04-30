@@ -8,7 +8,7 @@ import uuid
 import shutil
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Request, Depends
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse, FileResponse
 
 from transcriber_app.domain.ports import (

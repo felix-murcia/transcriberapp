@@ -2,9 +2,8 @@
 Primary adapters - Authentication routes.
 """
 
-import os
 from pathlib import Path
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
 from transcriber_app.domain.ports import SessionManagerPort
@@ -36,8 +35,6 @@ async def login_page(request: Request):
 @router.post("/login")
 async def login(request: Request):
     """Handle login request."""
-    # This is a simplified version - actual implementation would use auth service
-    from fastapi import Form
     username = (await request.form()).get("username", "")
     password = (await request.form()).get("password", "")
 

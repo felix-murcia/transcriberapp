@@ -1,7 +1,6 @@
 """Logging configuration."""
 
 import logging
-import os
 from pathlib import Path
 
 # Setup logging directory
@@ -13,7 +12,7 @@ def setup_logging(name: str, level: int = logging.INFO):
     """Setup and return a logger."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    
+
     if not logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter(
@@ -22,6 +21,6 @@ def setup_logging(name: str, level: int = logging.INFO):
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-    
+
     logger.propagate = True
     return logger

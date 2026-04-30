@@ -4,7 +4,6 @@ Concrete implementations of transcription ports.
 """
 
 from transcriber_app.domain.ports import AudioTranscriberPort
-from transcriber_app.domain.exceptions import TranscriptionError
 
 
 class GroqAudioTranscriber(AudioTranscriberPort):

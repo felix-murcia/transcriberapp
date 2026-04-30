@@ -91,7 +91,7 @@ class Orchestrator:
     def _cleanup_audio_file(self, audio_path: str) -> None:
         """
         Elimina el archivo de audio original después de la transcripción.
-        
+
         Args:
             audio_path: Ruta al archivo de audio a eliminar
         """

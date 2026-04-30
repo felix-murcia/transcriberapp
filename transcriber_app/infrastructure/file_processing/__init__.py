@@ -3,7 +3,6 @@ Infrastructure layer - file reading implementations.
 Concrete implementations of audio file reading ports.
 """
 
-import os
 from pathlib import Path
 from transcriber_app.domain.ports import AudioFileReaderPort
 from transcriber_app.domain.entities import AudioFile
