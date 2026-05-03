@@ -4,7 +4,7 @@ Entity: An object that is defined by its identity, not its attributes.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -23,9 +23,16 @@ class TranscriptionJob:
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
 
+    # Para procesamiento en caliente de chunks
+    total_chunks: Optional[int] = None
+    processed_chunks: int = 0
+    partial_transcriptions: Optional[dict] = None  # index -> transcription_text
+
     def __post_init__(self):
         if self.created_at is None:
             self.created_at = datetime.now()
+        if self.partial_transcriptions is None:
+            self.partial_transcriptions = {}
 
 
 @dataclass
@@ -36,8 +43,8 @@ class AudioFile:
     size_bytes: int
     extension: str
     is_valid: bool = True
-    validation_issues: list = None
-    validation_warnings: list = None
+    validation_issues: Optional[List[str]] = None
+    validation_warnings: Optional[List[str]] = None
 
     def __post_init__(self):
         if self.validation_issues is None:

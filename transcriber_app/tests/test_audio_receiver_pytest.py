@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from transcriber_app.modules.audio_receiver import AudioReceiver
+from transcriber_app.infrastructure.audio import LocalAudioFileReader as AudioReceiver
 
 
 def test_audio_receiver_load_returns_expected():

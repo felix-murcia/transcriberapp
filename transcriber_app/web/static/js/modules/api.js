@@ -101,11 +101,15 @@ async function uploadChunk(chunk, chunkIndex, totalChunks, uploadId, nombre, mod
 
     const fetchOptions = {
         method: "POST",
-        body: formData
+        body: formData,
+        // Aumentar timeout para procesamiento de chunks (10 minutos)
+        signal: AbortSignal.timeout(600000) // 10 minutes
     };
 
     if (signal) {
-        fetchOptions.signal = signal;
+        // Si ya hay un signal, combinar con timeout
+        const timeoutSignal = AbortSignal.timeout(600000);
+        fetchOptions.signal = AbortSignal.any([signal, timeoutSignal]);
     }
 
     try {

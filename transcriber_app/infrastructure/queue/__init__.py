@@ -22,3 +22,11 @@ class FastAPIBackgroundTasksAdapter(JobQueuePort):
         if self._background_tasks is None:
             raise RuntimeError("BackgroundTasks not set. Call set_background_tasks() first.")
         self._background_tasks.add_task(func, *args, **kwargs)
+
+
+class SynchronousJobQueueAdapter(JobQueuePort):
+    """Synchronous job queue adapter for CLI - executes tasks immediately."""
+
+    def add_task(self, func, *args, **kwargs) -> None:
+        """Execute the task synchronously."""
+        func(*args, **kwargs)

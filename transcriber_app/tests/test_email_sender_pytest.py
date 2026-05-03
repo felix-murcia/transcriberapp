@@ -1,6 +1,6 @@
 import subprocess
 import pytest
-from transcriber_app.modules.email_sender import EmailSender
+from transcriber_app.infrastructure.email.email_sender import EmailSender
 from transcriber_app.modules import emails
 
 

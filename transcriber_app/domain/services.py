@@ -3,16 +3,21 @@ Domain services - encapsulate business logic that doesn't naturally fit in entit
 These orchestrate the use of domain objects and ports.
 """
 
+import logging
+
 from transcriber_app.domain.ports import (
     AudioTranscriberPort,
+    AISummarizerPort,
     AudioValidatorPort,
     AudioFileReaderPort,
     OutputFormatterPort,
     JobStatusRepositoryPort,
-    AISummarizerPort
+    FileStoragePort,
 )
 from transcriber_app.domain.entities import TranscriptionJob, ProcessingResult
 from transcriber_app.domain.exceptions import AudioValidationError
+
+logger = logging.getLogger("transcribeapp")
 
 
 class TranscriptionService:
@@ -49,16 +54,21 @@ class TranscriptionService:
         Returns:
             ProcessingResult: Result of processing
         """
+        logger.info(f"[TRANSCRIPTION SERVICE] Iniciando procesamiento de audio: {job.audio_path}")
         try:
             # Update job status
             job.status = "processing"
             self._update_job_status(job)
 
             # 1. Load audio file
+            logger.info(f"[TRANSCRIPTION SERVICE] Cargando archivo de audio: {job.audio_path}")
             audio_file = self.file_reader.load(job.audio_path)
+            logger.info(f"[TRANSCRIPTION SERVICE] Archivo cargado: {audio_file.filename}, {audio_file.size_bytes} bytes")
 
             # 2. Validate audio
+            logger.info(f"[TRANSCRIPTION SERVICE] Validando audio...")
             validation_result = self.validator.validate(audio_file.path)
+            logger.info(f"[TRANSCRIPTION SERVICE] Validación completada: valid={validation_result.get('valid')}")
 
             if not validation_result.get("valid", False):
                 non_length_issues = [

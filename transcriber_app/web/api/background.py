@@ -1,10 +1,9 @@
 # transcriber_app/web/api/background.py
 
-from transcriber_app.runner.orchestrator import Orchestrator, AudioValidationError
-from transcriber_app.modules.output_formatter import OutputFormatter
-from transcriber_app.modules.audio_receiver import AudioReceiver
-from transcriber_app.modules.ai.groq.transcriber import GroqTranscriber
-from transcriber_app.modules.logging.logging_config import setup_logging
+from transcriber_app.domain.exceptions import AudioValidationError
+from transcriber_app.application.use_cases import ProcessAudioUseCase
+from transcriber_app.adapters.primary.api import get_transcription_service
+from transcriber_app.infrastructure.logging.logging_config import setup_logging
 from pathlib import Path
 import os
 
@@ -62,26 +61,28 @@ def process_audio_job(job_id: str, nombre: str, modo: str, email: str):
         file_size = os.path.getsize(audio_path)
         logger.info(f"[BACKGROUND JOB] Tamaño del audio: {file_size} bytes ({file_size / (1024*1024):.2f} MB)")
 
-        # === USAR EL MISMO PIPELINE QUE EL CLI PERO SIN GUARDAR ARCHIVOS ===
-        orchestrator = Orchestrator(
-            receiver=AudioReceiver(),
-            transcriber=GroqTranscriber(),
-            formatter=OutputFormatter(),
-            save_files=False
+        # USAR CASO DE USO PROCESAR AUDIO
+        transcription_service = get_transcription_service(save_files=False)
+        use_case = ProcessAudioUseCase(transcription_service)
+        result = use_case.execute(
+            audio_path=str(audio_path),
+            mode=modo,
+            email=email,
+            job_id=job_id,
         )
 
-        output_file, text, summary = orchestrator.run_audio(str(audio_path), modo)
-
         logger.info(f"[BACKGROUND JOB] Procesamiento en memoria completado para {nombre}")
-        logger.info(f"[BACKGROUND JOB] Transcripción obtenida: {len(text)} caracteres")
-        if text:
-            logger.info(f"[BACKGROUND JOB] Primeros 100 caracteres: {text[:100]}")
+        logger.info(f"[BACKGROUND JOB] Transcripción obtenida: {len(result.get('transcription', ''))} caracteres")
+        transcription = result.get('transcription', '')
+        if transcription:
+            logger.info(f"[BACKGROUND JOB] Primeros 100 caracteres: {transcription[:100]}")
 
         # Guardar resultados en el JOB_STATUS para que el frontend los recoja
         JOB_STATUS[job_id] = {
-            "status": "done",
-            "transcription": text,
-            "markdown": summary
+            "status": result["status"],
+            "transcription": result.get("transcription"),
+            "markdown": result.get("summary"),
+            "job_id": result.get("job_id"),
         }
 
         logger.info(f"[BACKGROUND JOB] Job {job_id} finalizado correctamente")

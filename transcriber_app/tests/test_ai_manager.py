@@ -1,7 +1,7 @@
 # transcriber_app/tests/test_ai_manager.py
-from transcriber_app.modules.ai.ai_manager import AIManager
-from transcriber_app.modules.ai.gemini.agents.tecnico_agent import tecnico_agent
-from transcriber_app.modules.ai.gemini.agents.refinamiento_agent import refinamiento_agent
+from transcriber_app.infrastructure.ai.gemini.ai_manager import AIManager
+from transcriber_app.infrastructure.ai.gemini.agents.tecnico_agent import tecnico_agent
+from transcriber_app.infrastructure.ai.gemini.agents.refinamiento_agent import refinamiento_agent
 
 
 def test_ai_manager_selects_correct_agent():

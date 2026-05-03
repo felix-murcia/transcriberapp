@@ -1,6 +1,6 @@
 import os
 from unittest.mock import patch
-from transcriber_app.modules.output_formatter import OutputFormatter
+from transcriber_app.infrastructure.output import LocalOutputFormatter as OutputFormatter
 
 
 def test_save_output_and_transcription(tmp_path, monkeypatch):

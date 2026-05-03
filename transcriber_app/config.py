@@ -2,7 +2,7 @@
 import os
 import random
 from dotenv import load_dotenv
-from transcriber_app.modules.logging.logging_config import setup_logging
+from transcriber_app.infrastructure.logging.logging_config import setup_logging
 
 # Logging
 logger = setup_logging("transcribeapp")

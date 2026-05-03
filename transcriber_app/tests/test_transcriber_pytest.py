@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from transcriber_app.modules.transcriber_cli import Transcriber
+from transcriber_app.infrastructure.cli.transcriber_cli import Transcriber
 
 
 @pytest.fixture

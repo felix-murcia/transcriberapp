@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from transcriber_app.modules.ai.gemini.client import GeminiModel
+from transcriber_app.infrastructure.ai.gemini.client import GeminiModel
 
 
 def test_gemini_model_run_agent_starlette_response():

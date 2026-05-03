@@ -8,7 +8,7 @@ client = TestClient(app)
 
 
 def test_chat_stream_endpoint(monkeypatch):
-    from transcriber_app.modules.ai.ai_manager import AIManager
+    from transcriber_app.infrastructure.ai.gemini.ai_manager import AIManager
 
     # Mock agent with run method
     mock_agent = MagicMock()

@@ -1,11 +1,11 @@
 # transcriber_app/tests/test_agents_load.py
 
-from transcriber_app.modules.ai.gemini.agents.tecnico_agent import tecnico_agent
-from transcriber_app.modules.ai.gemini.agents.ejecutivo_agent import ejecutivo_agent
-from transcriber_app.modules.ai.gemini.agents.refinamiento_agent import refinamiento_agent
-from transcriber_app.modules.ai.gemini.agents.bullet_agent import bullet_agent
-from transcriber_app.modules.ai.gemini.agents.default_agent import default_agent
-from transcriber_app.modules.ai.gemini.model import GeminiAgent
+from transcriber_app.infrastructure.ai.gemini.agents.tecnico_agent import tecnico_agent
+from transcriber_app.infrastructure.ai.gemini.agents.ejecutivo_agent import ejecutivo_agent
+from transcriber_app.infrastructure.ai.gemini.agents.refinamiento_agent import refinamiento_agent
+from transcriber_app.infrastructure.ai.gemini.agents.bullet_agent import bullet_agent
+from transcriber_app.infrastructure.ai.gemini.agents.default_agent import default_agent
+from transcriber_app.infrastructure.ai.gemini.model import GeminiAgent
 
 
 def test_agents_initialize():

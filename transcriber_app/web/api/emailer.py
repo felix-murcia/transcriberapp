@@ -13,6 +13,9 @@ logger = setup_logging("transcribeapp")
 # Cargar variables de entorno
 load_dotenv()
 
+# Timeout configuration via environment variables
+SMTP_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", 30))
+
 
 def get_smtp_config():
     """Obtiene y valida configuración SMTP"""
@@ -106,10 +109,10 @@ def send_email_with_attachment(to: str, subject: str, body: str, attachment_path
                     SMTP_HOST,
                     port,
                     context=context,
-                    timeout=30
+                    timeout=SMTP_TIMEOUT
                 )
             else:
-                smtp = smtplib.SMTP(SMTP_HOST, port, timeout=30)
+                smtp = smtplib.SMTP(SMTP_HOST, port, timeout=SMTP_TIMEOUT)
                 smtp.starttls()
 
             # Autenticación
@@ -154,7 +157,7 @@ def send_email(to: str, subject: str, body: str):
         msg["Subject"] = subject
         msg.set_content(body)
 
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as smtp:
             smtp.login(SMTP_USER, SMTP_PASS, initial_response_ok=True)
             smtp.send_message(msg)
 

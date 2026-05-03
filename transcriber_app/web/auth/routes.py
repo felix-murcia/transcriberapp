@@ -13,11 +13,14 @@ from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from transcriber_app.modules.logging.logging_config import setup_logging
+from transcriber_app.infrastructure.logging.logging_config import setup_logging
 
 logger = setup_logging("transcribeapp")
 
 OAUTH_SESSIONS = {}
+
+# Timeout configuration via environment variables
+OAUTH_TIMEOUT_HTTP = float(os.getenv("OAUTH_TIMEOUT_HTTP", 30.0))
 
 SESSION_EXPIRY_SECONDS = 300
 
@@ -207,7 +210,7 @@ async def oauth_callback(request: Request):
         client_credentials = f"{config['client_id']}:{config['client_secret']}"
         basic_token = base64.b64encode(client_credentials.encode()).decode()
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=OAUTH_TIMEOUT_HTTP) as client:
             token_response = await client.post(
                 token_url,
                 data={
@@ -327,7 +330,7 @@ async def userinfo(request: Request):
 
     import httpx
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=OAUTH_TIMEOUT_HTTP) as client:
         response = await client.get(
             userinfo_url, headers={"Authorization": f"Bearer {access_token}"}
         )
@@ -365,7 +368,7 @@ async def exchange_token(request: Request, response: Response):
         client_credentials = f"{config['client_id']}:{config['client_secret']}"
         basic_token = base64.b64encode(client_credentials.encode()).decode()
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=OAUTH_TIMEOUT_HTTP) as client:
             token_resp = await client.post(
                 token_url,
                 data={

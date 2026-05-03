@@ -1,5 +1,5 @@
 import pytest
-from transcriber_app.modules.ai.gemini.model import normalize_gemini_output, GeminiAgent
+from transcriber_app.infrastructure.ai.gemini.model import normalize_gemini_output, GeminiAgent
 
 
 class MockResponse:

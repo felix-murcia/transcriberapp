@@ -2,10 +2,7 @@
 import os
 import sys
 
-from transcriber_app.modules.audio_receiver import AudioReceiver
-from transcriber_app.modules.transcriber_cli import Transcriber
-from transcriber_app.modules.output_formatter import OutputFormatter
-from transcriber_app.runner.orchestrator import Orchestrator
+from transcriber_app.di import get_process_audio_use_case, get_process_text_use_case
 from transcriber_app.config import AVAILABLE_MODES
 
 
@@ -90,28 +87,30 @@ def main():
         return
 
     # ============================
-    #   INICIALIZAR PIPELINE
+    #   INICIALIZAR USE CASES
     # ============================
-    receiver = AudioReceiver()
-    transcriber = Transcriber()
-    formatter = OutputFormatter()
-
-    # Nuevo Orchestrator sin summarizer
-    orchestrator = Orchestrator(receiver, transcriber, formatter)
+    if input_type == "audio":
+        use_case = get_process_audio_use_case(save_files=True)
+    else:
+        use_case = get_process_text_use_case(save_files=True)
 
     # ============================
-    #   EJECUTAR PIPELINE
+    #   EJECUTAR USE CASE
     # ============================
     try:
         if input_type == "audio":
-            output_file, text, summary = orchestrator.run_audio(path, mode)
+            result = use_case.execute(audio_path=path, mode=mode)
         else:
-            output_file, text, summary = orchestrator.run_text(path, mode)
+            result = use_case.execute(text=open(path, 'r', encoding='utf-8').read(), mode=mode, filename=os.path.basename(path))
 
-        output = f"✅ Transcripción guardada: {text[:100]}...\n✅ Resumen guardado en: {output_file}"
+        if result["status"] == "error":
+            print(f"❌ Error: {result.get('error', 'Unknown error')}")
+            sys.exit(1)
 
-    except ValueError as e:
-        print(f"[BAD_AUDIO] {e}")
+        output = f"✅ Transcripción: {result['transcription'][:100]}...\n✅ Resumen: {result['markdown'][:100]}...\n✅ Job ID: {result['job_id']}"
+
+    except Exception as e:
+        print(f"[ERROR] {e}")
         sys.exit(3)
 
     print(output)

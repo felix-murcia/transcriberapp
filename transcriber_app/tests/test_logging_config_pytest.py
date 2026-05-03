@@ -1,5 +1,5 @@
 import logging
-from transcriber_app.modules.logging.logging_config import setup_logging, LOG_DIR
+from transcriber_app.infrastructure.logging.logging_config import setup_logging, LOG_DIR
 
 
 def test_setup_logging_returns_logger_and_log_dir_exists(tmp_path, monkeypatch):

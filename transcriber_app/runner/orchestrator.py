@@ -1,9 +1,9 @@
 # transcriber_app/runner/orchestrator.py
 
 import os
-from transcriber_app.modules.logging.logging_config import setup_logging
-from transcriber_app.modules.ai.ai_manager import AIManager, log_agent_result
-from transcriber_app.modules.ffmpeg_client import validate_audio
+from transcriber_app.infrastructure.logging.logging_config import setup_logging
+from transcriber_app.infrastructure.ai.gemini.ai_manager import AIManager, log_agent_result
+from transcriber_app.infrastructure.validation import FFmpegAudioValidator
 
 # Logging
 logger = setup_logging("transcribeapp")
@@ -17,10 +17,11 @@ class AudioValidationError(Exception):
 
 
 class Orchestrator:
-    def __init__(self, receiver, transcriber, formatter, save_files=True):
+    def __init__(self, receiver, transcriber, formatter, validator=None, save_files=True):
         self.receiver = receiver
         self.transcriber = transcriber
         self.formatter = formatter
+        self.validator = validator or FFmpegAudioValidator()
         self.save_files = save_files
         logger.info(f"[ORCHESTRATOR] Orchestrator inicializado con componentes (save_files={save_files}).")
 
@@ -28,12 +29,12 @@ class Orchestrator:
         logger.info(f"[ORCHESTRATOR] Ejecutando flujo de audio para: {audio_path} con modo: {mode}")
 
         # 1. Cargar audio
-        audio_info = self.receiver.load(audio_path)
+        audio_file = self.receiver.load(audio_path)
 
         # 2. Validar audio antes de transcripción
-        logger.info(f"[ORCHESTRATOR] Validando audio: {audio_info['path']}")
+        logger.info(f"[ORCHESTRATOR] Validando audio: {audio_file.path}")
         try:
-            validation_result = validate_audio(audio_info["path"])
+            validation_result = self.validator.validate_audio(audio_file.path)
         except Exception as e:
             logger.warning(f"[ORCHESTRATOR] Error al validar audio: {e}. Continuando con transcripción.")
             validation_result = {"valid": True, "issues": [], "warnings": []}
@@ -67,15 +68,15 @@ class Orchestrator:
             logger.warning(f"[ORCHESTRATOR] Advertencias de validación: {validation_result['warnings']}")
 
         # 3. Transcribir
-        text, metadata = self.transcriber.transcribe(audio_info["path"])
+        text, metadata = self.transcriber.transcribe(audio_file.path)
         logger.info(f"[ORCHESTRATOR] Metadata de transcripción: {metadata}")
 
         # 4. Guardar transcripción en texto plano en /app/transcripts
-        safe_name = audio_info["name"].lower()
+        safe_name = audio_file.filename.lower()
         self.formatter.save_transcription(safe_name, text, enforce_save=self.save_files)
 
         # 5. Eliminar archivo de audio original para liberar espacio
-        self._cleanup_audio_file(audio_info["path"])
+        self._cleanup_audio_file(audio_file.path)
 
         # 6. Resumir con Gemini (nuevo sistema)
         summary_output = AIManager.summarize(text, mode)
@@ -84,10 +85,10 @@ class Orchestrator:
         log_agent_result(summary_output)
 
         # 8. Guardar métricas (SIEMPRE se guardan)
-        self.formatter.save_metrics(audio_info["name"], summary_output, mode)
+        self.formatter.save_metrics(audio_file.filename, summary_output, mode)
 
         # 9. Guardar salida final
-        output_file = self.formatter.save_output(audio_info["name"], summary_output, mode, enforce_save=self.save_files)
+        output_file = self.formatter.save_output(audio_file.filename, summary_output, mode, enforce_save=self.save_files)
         return (output_file, text, summary_output)
 
     def _cleanup_audio_file(self, audio_path: str) -> None:

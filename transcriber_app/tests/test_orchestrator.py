@@ -32,7 +32,7 @@ class DummyFormatter:
 
 def test_orchestrator_runs(monkeypatch):
     # Mock AIManager.summarize para devolver un texto simple
-    from transcriber_app.modules.ai.ai_manager import AIManager
+    from transcriber_app.infrastructure.ai.gemini.ai_manager import AIManager
     monkeypatch.setattr(AIManager, "summarize", lambda text, mode: "resumen generado")
 
     orch = Orchestrator(DummyReceiver(), DummyTranscriber(), DummyFormatter())

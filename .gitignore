@@ -31,3 +31,12 @@ wheels/
 .aider*
 
 k3s/secret.yaml
+*.wav
+
+.continue/
+.pytest_cache/
+.ruff_cache/
+audios/
+.kilo/
+.vscode/
+standards/

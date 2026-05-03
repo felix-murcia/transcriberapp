@@ -1,26 +1,38 @@
-"""Logging configuration."""
-
+# transcriber_app/modules/logging/logging_config.py
 import logging
+import sys
 from pathlib import Path
 
-# Setup logging directory
-LOG_DIR = Path(__file__).parent.parent.parent / "logs"
-LOG_DIR.mkdir(exist_ok=True)
+LOG_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def setup_logging(name: str, level: int = logging.INFO):
-    """Setup and return a logger."""
+def setup_logging(name="transcribeapp", level=logging.DEBUG) -> logging.Logger:
+    """
+    Configura el logging global del proyecto.
+    - name: nombre del logger (por defecto 'transcribeapp').
+    - level: nivel mínimo de log (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+    Devuelve un logger listo para usar.
+    """
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    if not logger.handlers:
-        handler = logging.StreamHandler()
+    if not logger.hasHandlers():
         formatter = logging.Formatter(
-            '%(asctime)s [%(name)s] %(levelname)s: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
         )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
 
+        # Consola
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter(formatter)
+        logger.addHandler(sh)
+
+        # Fichero único transcribeapp.log
+        fh = logging.FileHandler(LOG_DIR / "transcribeapp.log", encoding="utf-8")
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+    # 🔑 Clave: propagar al root para que todos los módulos se vean
     logger.propagate = True
     return logger

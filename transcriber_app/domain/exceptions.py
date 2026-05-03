@@ -2,6 +2,8 @@
 Domain exceptions for TranscriberApp.
 """
 
+from typing import Optional
+
 
 class DomainError(Exception):
     """Base domain exception."""
@@ -11,7 +13,7 @@ class DomainError(Exception):
 class AudioValidationError(DomainError):
     """Raised when audio file fails validation."""
 
-    def __init__(self, message: str, validation_result: dict = None):
+    def __init__(self, message: str, validation_result: Optional[dict] = None):
         super().__init__(message)
         self.validation_result = validation_result
 

@@ -14,6 +14,41 @@ from typing import Optional, List, Dict, Any
 from transcriber_app.domain.entities import AudioFile
 
 
+class AIModelPort(ABC):
+    """
+    Port for AI model operations in TranscriberApp.
+    Defines the interface that AI models must implement.
+    """
+
+    @abstractmethod
+    def transcribe(self, audio_path: str) -> str:
+        """
+        Transcribe an audio file and return the resulting text.
+
+        Args:
+            audio_path: Path to the audio file
+
+        Returns:
+            str: Transcribed text
+        """
+        pass
+
+    @abstractmethod
+    def run_agent(self, mode: str, text: str) -> str:
+        """
+        Run a specific agent (refinement, technical, executive, etc.)
+        on already transcribed text.
+
+        Args:
+            mode: Agent mode (default, tecnico, refinamiento, etc.)
+            text: Text to process
+
+        Returns:
+            str: Processed text result
+        """
+        pass
+
+
 class AudioTranscriberPort(ABC):
     """Port for audio transcription services."""
 
@@ -302,3 +337,31 @@ class SessionManagerPort(ABC):
             bool: True if successful
         """
         pass
+
+
+# Additional protocols from audio_ports.py
+from typing import Protocol
+
+
+class AudioPreparerPort(Protocol):
+    """Puerto para preparación de audio"""
+    def prepare_audio(self, audio_path: str, skip_validation: bool = False) -> Dict[str, Any]:
+        """Prepara audio para transcripción. Retorna dict con chunks o audio_path"""
+        ...
+
+
+class GroqApiPort(Protocol):
+    """Puerto para comunicación con Groq API"""
+    def transcribe_audio(self, audio_input: Dict[str, Any]) -> tuple[str, float]:
+        """Transcribe audio. Input puede ser chunks o single file"""
+        ...
+
+
+class FfmpegValidatorPort(Protocol):
+    """Puerto para validación y preparación con FFmpeg"""
+    def ensure_ffmpeg_api_ready(self) -> bool: ...
+    def validate_audio(self, path: str) -> dict: ...
+    def convert_audio(self, path: str, fmt: str) -> bytes: ...
+    def clean_audio(self, path: str) -> bytes: ...
+    def convert_to_mp3_chunked(self, path: str, max_size_mb: int) -> Optional[dict]: ...
+    def check_chunked_endpoint_available(self) -> bool: ...
