@@ -1,0 +1,35 @@
+/* ============================================
+   TRANSCRIBER APP - ESTILOS PRINCIPALES
+   ============================================
+   Este archivo es el punto de entrada que importa
+   todos los módulos de estilos organizados por 
+   funcionalidad.
+   ============================================ */
+
+/* Base */
+@import url('./base/reset.css');
+@import url('./base/variables.css');
+
+/* Layout */
+@import url('./layout/main.css');
+@import url('./layout/header.css');
+
+/* Components */
+@import url('./components/cards.css');
+@import url('./components/forms.css');
+@import url('./components/buttons.css');
+
+/* Features */
+@import url('./features/recording.css');
+@import url('./features/collapsible.css');
+@import url('./features/results.css');
+
+/* Panels */
+@import url('./panels/history.css');
+@import url('./panels/chat.css');
+
+/* Utilities */
+@import url('./utilities/animations.css');
+@import url('./utilities/scrollbar.css');
+@import url('./utilities/states.css');
+@import url('./utilities/responsive.css');

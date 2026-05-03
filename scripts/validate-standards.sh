@@ -1,0 +1,1 @@
+../standards/scripts/validate-standards.sh

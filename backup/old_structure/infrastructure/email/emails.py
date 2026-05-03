@@ -1,0 +1,3 @@
+RECIPIENTS = [
+    "test@mail.com"
+]

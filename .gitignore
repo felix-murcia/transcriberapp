@@ -40,3 +40,5 @@ audios/
 .kilo/
 .vscode/
 standards/
+
+.mcp.json
