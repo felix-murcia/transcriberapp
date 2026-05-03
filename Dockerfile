@@ -42,4 +42,5 @@ RUN mkdir -p /app/logs && \
 
 EXPOSE 9000
 
-# CMD ["uvicorn", "transcriber_app.web.web_app:app", "--host", "0.0.0.0", "--port", "9000", "--log-level", "info"]
+# Run with new Clean Architecture structure
+CMD ["python", "-m", "src.main"]

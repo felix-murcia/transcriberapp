@@ -44,6 +44,6 @@ Repository = "https://github.com/FelixMarin/transcriberapp"
 "Issue Tracker" = "https://github.com/FelixMarin/transcriberapp/issues"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["transcriber_app*"]
+where = ["src"]
+include = ["*"]
 exclude = ["tests*", "test*", "docs*"]

@@ -1,3 +1,0 @@
-RECIPIENTS = [
-    "test@mail.com"
-]

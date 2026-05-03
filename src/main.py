@@ -53,9 +53,6 @@ def create_application() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],  # Configure appropriately for production
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
     )
 
     # Add custom middleware
@@ -98,11 +95,11 @@ app = create_application()
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "9000"))  # Changed to 9000 to match docker-compose
     host = os.getenv("HOST", "0.0.0.0")
 
     uvicorn.run(
-        "main:app",
+        "src.main:app",
         host=host,
         port=port,
         reload=True,
